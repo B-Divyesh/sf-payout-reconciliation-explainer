@@ -88,7 +88,7 @@ h3 { margin-bottom: 8px; font-size: 1.08rem; line-height: 1.25; }
 .offline-pill { display: none; min-height: 32px; align-items: center; padding: 3px 10px; border: 1px solid var(--amber); color: var(--ink); font-size: .78rem; font-weight: 700; }
 .offline-pill.visible { display: inline-flex; }
 
-.button { min-height: 44px; display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 10px 17px; border: 1px solid var(--teal); border-radius: 3px; background: var(--teal); color: var(--teal-ink); font-weight: 720; text-decoration: none; transition: transform 180ms ease, background 180ms ease; }
+.button { min-height: 44px; display: inline-flex; justify-content: center; align-items: center; gap: 8px; padding: 10px 17px; border: 1px solid var(--teal); border-radius: 3px; background: var(--teal); color: var(--teal-ink); font-weight: 720; text-decoration: none; transition: transform 180ms ease; }
 .button:hover { background: var(--teal-hover); }
 .button:active { transform: translateY(1px); }
 .button.secondary { border-color: var(--line-strong); background: transparent; color: var(--ink); }

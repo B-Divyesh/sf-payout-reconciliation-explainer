@@ -1,0 +1,30 @@
+{
+  "slug": "payout-reconciliation-explainer",
+  "title": "Payout Reconciliation Explainer",
+  "territory": "utilities",
+  "user": "Small ecommerce operators and their bookkeepers who need to reconcile processor payouts against orders, refunds, fees, and bank deposits without opaque enterprise accounting tooling.",
+  "evidence": [
+    {
+      "url": "https://hn.algolia.com/api/v1/items/49399160",
+      "date": "2026-08-22",
+      "quote_or_summary": "An ecommerce reconciliation builder asks businesses and accountants what is most frustrating about matching Shopify, payment-provider, and accounting numbers and explaining mismatches."
+    },
+    {
+      "url": "https://github.com/actualbudget/actual/issues/8567",
+      "date": "2026-07-25",
+      "quote_or_summary": "An Actual Budget user asks for a reconciliation workflow that infers principal versus interest from balances because imported payment data lacks the necessary split."
+    }
+  ],
+  "recurrence": "Both 2026 requests center on incomplete financial exports: totals are available but the explanation for a difference is not, creating repeated manual reconciliation work.",
+  "current_workaround": "Export CSVs from Shopify/Stripe/bank systems, combine them in spreadsheets, and leave a manual memo trail for an accountant.",
+  "incumbents_and_gap": "A2X, Link My Books, QuickBooks, Xero, and enterprise reconciliation systems automate accounting at a cost. A focused local explainer for one payout batch and its evidence trail is underserved.",
+  "smallest_useful_product": "An offline web app that imports three CSVs (orders/events, payout, bank), applies transparent matching rules, shows fees/refunds/timing differences as a waterfall, and exports a reconciler CSV plus accountant handoff PDF. Non-goals: direct bank/Shopify connections, bookkeeping ledger, tax advice, or auto-posting journal entries.",
+  "success_measure": "On a labelled pilot dataset, users explain at least 95% of payout-to-bank variance and produce a handoff package in under 20 minutes per payout period.",
+  "artifact_class": "pwa-offline",
+  "monetization": "one-time — CSV-based reconciliation is a concrete utility that should not require uploading financial records or a recurring integration fee.",
+  "constraints": "All financial data stays local; require user-mapped columns and visible rules; no accounting/tax claims; retain currency/date precision and audit trail.",
+  "est_build_effort": "M",
+  "why_distinct": "It explains and hands off a single reconciliation rather than trying to replace accounting software or hide matching logic behind automation.",
+  "confidence": 4,
+  "state": "RESEARCHED"
+}

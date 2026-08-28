@@ -22,6 +22,9 @@ test('runs the labelled reconciliation and exports both handoff files', async ({
   await page.addScriptTag({ content: axe.source });
   const results = await page.evaluate(async () => await (window as unknown as { axe: typeof axe }).axe.run(document));
   expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
+  await page.getByRole('button', { name: 'Switch color theme' }).click();
+  const darkResults = await page.evaluate(async () => await (window as unknown as { axe: typeof axe }).axe.run(document));
+  expect(darkResults.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
   expect(consoleErrors).toEqual([]);
 });
 
@@ -48,4 +51,13 @@ test('reloads the installed workbench offline with the draft intact', async ({ p
   await expect(page.locator('h1')).toHaveText('See where every payout penny went.');
   await expect(page.getByText('Offline · work stays local')).toBeVisible();
   await expect(page.getByText('example-events.csv')).toBeVisible();
+});
+
+test('serves direct privacy and terms pages', async ({ page }) => {
+  await page.goto('/privacy/');
+  await expect(page.locator('h1')).toHaveText('Privacy, without fine print');
+  await expect(page).toHaveTitle(/Privacy/);
+  await page.goto('/terms/');
+  await expect(page.locator('h1')).toHaveText('Plain-language terms');
+  await expect(page).toHaveTitle(/Terms/);
 });

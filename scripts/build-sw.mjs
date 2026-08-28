@@ -63,7 +63,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (url.origin !== location.origin) return;
   if (event.request.mode === 'navigate') {
-    event.respondWith(caches.match(event.request, { ignoreSearch: true }).then(cached => cached || caches.match('/index.html')).then(cached => cached || fetch(event.request)).catch(() => caches.match('/offline.html')));
+    const fallback = url.pathname.startsWith('/privacy') ? '/privacy/index.html' : url.pathname.startsWith('/terms') ? '/terms/index.html' : '/index.html';
+    event.respondWith(caches.match(event.request, { ignoreSearch: true }).then(cached => cached || caches.match(fallback)).then(cached => cached || fetch(event.request)).catch(() => caches.match('/offline.html')));
     return;
   }
   event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
