@@ -1,8 +1,13 @@
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { copyFile, readFile, readdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { join, relative } from 'node:path';
 
 const dist = new URL('../dist/', import.meta.url);
+
+await copyFile(
+  new URL('../staticwebapp.config.json', import.meta.url),
+  new URL('../dist/staticwebapp.config.json', import.meta.url),
+);
 
 const entryHtml = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
 const scriptPath = entryHtml.match(/<script type="module" crossorigin src="([^"]+)"><\/script>/)?.[1];

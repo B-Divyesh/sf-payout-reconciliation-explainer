@@ -3,7 +3,7 @@ import { parseCsv } from './lib/csv';
 import { exportBackup, exportPdf, exportReconcilerCsv, downloadBlob } from './lib/export';
 import { captureReturnedLicense, checkoutUrl, clearLicense, getLicenseState, storeLicense, type LicenseState } from './lib/license';
 import { formatMoney, minorToDecimal, parseMoney } from './lib/money';
-import { mappingRequirements, reconcile, suggestMapping } from './lib/reconcile';
+import { mappingRequirements, reconcile, suggestMapping, validateManualAdjustment } from './lib/reconcile';
 import { clearDraft, deleteHistory, loadDraft, loadHistory, loadPresets, saveDraft, saveHistory, savePreset } from './lib/storage';
 import type { AppState, ColumnMapping, DatasetKind, SavedReconciliation } from './lib/types';
 
@@ -124,7 +124,9 @@ function renderResults(): string {
     <div class="result-columns"><div><p class="eyebrow">Open rules</p><h3>What the app did</h3><ul class="audit-list">${result.audit.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul><details><summary>Mapped source evidence</summary>${kinds.map((kind) => `<p><strong>${kindLabels[kind].title}:</strong> ${escapeHtml(state.datasets[kind]?.fileName)} · ${state.datasets[kind]?.rows.length} rows</p>`).join('')}</details></div>
       <div class="explain-box"><h3>Explain the bank difference</h3><p class="small muted">Remaining: <strong class="money">${money(result.remainingVarianceMinor)}</strong>. Enter a signed amount: positive when the bank is higher, negative when lower.</p>
         ${state.adjustments.length ? `<ul class="adjustment-list">${state.adjustments.map((item) => `<li><span><strong>${escapeHtml(item.category)}</strong><br><span class="small">${escapeHtml(item.note)}</span></span><span class="money">${money(item.amountMinor)}</span><button class="button quiet small-button" type="button" data-action="remove-adjustment" data-id="${item.id}" aria-label="Remove ${escapeHtml(item.note)}">Remove</button></li>`).join('')}</ul>` : '<p class="small">No manual explanations yet.</p>'}
-        <form id="adjustment-form"><div class="field"><label for="adjustment-category">Reason</label><select id="adjustment-category"><option value="timing">Timing difference</option><option value="bank-fee">Bank fee</option><option value="rounding">Rounding</option><option value="other">Other documented item</option></select></div><div class="field"><label for="adjustment-amount">Signed amount (${result.currency})</label><input id="adjustment-amount" inputmode="decimal" required placeholder="-0.12"></div><div class="field"><label for="adjustment-note">Evidence note</label><textarea id="adjustment-note" required maxlength="240" placeholder="Why this amount belongs here"></textarea></div><button class="button secondary" type="submit">Add explanation</button>${errorMessage ? `<p class="form-error" role="alert">${escapeHtml(errorMessage)}</p>` : ''}</form>
+        ${Math.abs(result.remainingVarianceMinor) <= 1
+    ? '<p class="locked-note"><strong>No explanation needed.</strong> The remaining variance is within one minor unit, so an adjustment would overstate the evidence trail.</p>'
+    : `<form id="adjustment-form"><div class="field"><label for="adjustment-category">Reason</label><select id="adjustment-category"><option value="timing">Timing difference</option><option value="bank-fee">Bank fee</option><option value="rounding">Rounding</option><option value="other">Other documented item</option></select></div><div class="field"><label for="adjustment-amount">Signed amount (${result.currency})</label><input id="adjustment-amount" inputmode="decimal" required placeholder="-0.12"></div><div class="field"><label for="adjustment-note">Evidence note</label><textarea id="adjustment-note" required maxlength="240" placeholder="Why this amount belongs here"></textarea></div><button class="button secondary" type="submit">Add explanation</button>${errorMessage ? `<p class="form-error" role="alert">${escapeHtml(errorMessage)}</p>` : ''}</form>`}
       </div></div>
     <div class="action-row"><button class="button" type="button" data-action="export-csv">Export reconciler CSV</button><button class="button secondary" type="button" data-action="export-pdf">Export accountant PDF</button><button class="button quiet" type="button" data-action="print">Print report</button></div>
   </section>`;
@@ -296,6 +298,7 @@ root.addEventListener('submit', (event) => {
       const amountMinor = parseMoney(amount, state.result.decimals);
       if (!amountMinor) throw new Error('Enter a non-zero signed amount.');
       if (!note) throw new Error('Add a short evidence note.');
+      validateManualAdjustment(state.result, amountMinor);
       state.adjustments.push({ id: crypto.randomUUID(), category: (document.querySelector('#adjustment-category') as HTMLSelectElement).value as 'timing' | 'bank-fee' | 'rounding' | 'other', amountMinor, note, createdAt: new Date().toISOString() });
       runReconciliation();
     } catch (error) { errorMessage = (error as Error).message; announce(errorMessage); renderApp(); }

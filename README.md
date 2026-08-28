@@ -57,7 +57,7 @@ CSV data never leaves the browser. The current draft, named history, and presets
 
 ## Billing configuration
 
-Checkout and verification use the Sociobot billing contract with the product slug in the path; no payment provider or product ID is embedded. Staging defaults to `https://pilot-api.sociobot.in`. The factory should set the release build explicitly:
+Checkout and verification use the Sociobot billing contract with the product slug in the path; no payment provider or product ID is embedded. Production defaults to `https://api.sociobot.in`; a registered staging product may explicitly override it:
 
 ```bash
 VITE_BILLING_BASE=https://api.sociobot.in npm run build

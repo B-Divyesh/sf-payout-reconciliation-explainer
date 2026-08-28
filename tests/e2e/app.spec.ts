@@ -28,6 +28,16 @@ test('runs the labelled reconciliation and exports both handoff files', async ({
   expect(consoleErrors).toEqual([]);
 });
 
+test('does not allow an explanation to overstate an already balanced payout', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Use labelled example' }).first().click();
+  await page.getByRole('button', { name: 'Run reconciliation' }).click();
+  await expect(page.getByRole('heading', { name: 'The bank deposit balances' })).toBeVisible();
+  await expect(page.getByText('Remaining:')).toContainText('$0.00');
+  await expect(page.getByText('No explanation needed.')).toBeVisible();
+  await expect(page.locator('#adjustment-form')).toHaveCount(0);
+});
+
 test('supports keyboard mapping and 390px layout', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'mobile-only check');
   await page.goto('/');

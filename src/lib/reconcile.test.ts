@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseCsv } from './csv';
 import { accountantPdfBlob } from './export';
-import { reconcile, suggestMapping } from './reconcile';
+import { reconcile, suggestMapping, validateManualAdjustment } from './reconcile';
 import type { AppState, DatasetKind } from './types';
 
 function fixture(bankAmount = '168.62'): AppState {
@@ -40,6 +40,23 @@ describe('transparent reconciliation', () => {
     expect(explained.remainingVarianceMinor).toBe(0);
     expect(explained.status).toBe('explained');
     expect(explained.explainedPercent).toBe(100);
+  });
+
+  it('never marks a settled payout balanced after an unsupported adjustment', () => {
+    const state = fixture();
+    const falselyAdjusted = reconcile(state.datasets, state.mappings, state.currency, [{ id: 'x', category: 'rounding', amountMinor: 12, note: 'Unsupported', createdAt: '2026-08-05T00:00:00Z' }]);
+    expect(falselyAdjusted.rawBankVarianceMinor).toBe(0);
+    expect(falselyAdjusted.remainingVarianceMinor).toBe(-12);
+    expect(falselyAdjusted.status).toBe('review');
+    expect(falselyAdjusted.explainedPercent).toBe(0);
+    expect(() => validateManualAdjustment(reconcile(state.datasets, state.mappings, state.currency, []), 12)).toThrow(/No manual explanation is needed/i);
+  });
+
+  it('rejects manual explanations that reverse or overstate the remaining variance', () => {
+    const state = fixture('168.50');
+    const initial = reconcile(state.datasets, state.mappings, state.currency, []);
+    expect(() => validateManualAdjustment(initial, 12)).toThrow(/same sign/i);
+    expect(() => validateManualAdjustment(initial, -13)).toThrow(/cannot exceed/i);
   });
 
   it('rejects mixed currency evidence', () => {

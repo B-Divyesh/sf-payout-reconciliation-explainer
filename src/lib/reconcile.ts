@@ -131,12 +131,12 @@ export function reconcile(
   const explainedAdjustmentsMinor = adjustments.reduce((sum, adjustment) => sum + adjustment.amountMinor, 0);
   const remainingVarianceMinor = rawBankVarianceMinor - explainedAdjustmentsMinor;
   const explainedPercent = rawBankVarianceMinor === 0
-    ? 100
+    ? (Math.abs(remainingVarianceMinor) <= 1 ? 100 : 0)
     : Math.max(0, Math.min(100, (1 - Math.abs(remainingVarianceMinor) / Math.abs(rawBankVarianceMinor)) * 100));
   const tolerance = 1;
-  const status = Math.abs(rawBankVarianceMinor) <= tolerance
-    ? 'balanced'
-    : Math.abs(remainingVarianceMinor) <= tolerance ? 'explained' : 'review';
+  const status = Math.abs(remainingVarianceMinor) <= tolerance
+    ? (Math.abs(rawBankVarianceMinor) <= tolerance ? 'balanced' : 'explained')
+    : 'review';
 
   let running = ordersMinor;
   const waterfall: WaterfallItem[] = [
@@ -183,4 +183,22 @@ export function reconcile(
     payoutDifferenceMinor, bankMinor, rawBankVarianceMinor, explainedAdjustmentsMinor, remainingVarianceMinor,
     explainedPercent, status, waterfall, events, payouts, banks, audit,
   };
+}
+
+/**
+ * Manual evidence is only meaningful when it reduces an outstanding
+ * payout-to-bank variance. Keeping this rule outside the renderer makes
+ * restored JSON drafts and future clients subject to the same guard.
+ */
+export function validateManualAdjustment(result: ReconciliationResult, amountMinor: number): void {
+  const tolerance = 1;
+  if (Math.abs(result.rawBankVarianceMinor) <= tolerance || Math.abs(result.remainingVarianceMinor) <= tolerance) {
+    throw new Error('No manual explanation is needed: the payout-to-bank variance is already within one minor unit.');
+  }
+  if (Math.sign(amountMinor) !== Math.sign(result.remainingVarianceMinor)) {
+    throw new Error('The explanation must use the same sign as the remaining variance.');
+  }
+  if (Math.abs(amountMinor) > Math.abs(result.remainingVarianceMinor)) {
+    throw new Error('The explanation cannot exceed the remaining variance. Split or correct the evidence instead.');
+  }
 }

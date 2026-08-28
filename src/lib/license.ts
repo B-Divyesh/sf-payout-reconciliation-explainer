@@ -2,7 +2,8 @@ const SLUG = 'payout-reconciliation-explainer';
 const STORAGE_KEY = `sb_license:${SLUG}`;
 const VERDICT_KEY = `${STORAGE_KEY}:verdict`;
 const DAY = 86_400_000;
-const BILLING_BASE = (import.meta.env.VITE_BILLING_BASE || 'https://pilot-api.sociobot.in').replace(/\/$/, '');
+/** Production is the safe default. Staging must opt into the pilot host explicitly. */
+export const billingBase = (import.meta.env.VITE_BILLING_BASE || 'https://api.sociobot.in').replace(/\/$/, '');
 
 export interface LicenseState {
   unlocked: boolean;
@@ -12,7 +13,7 @@ export interface LicenseState {
 
 interface CachedVerdict { valid: boolean; checkedAt: number; }
 
-export const checkoutUrl = `${BILLING_BASE}/api/v1/products/${SLUG}/checkout`;
+export const checkoutUrl = `${billingBase}/api/v1/products/${SLUG}/checkout`;
 
 export function captureReturnedLicense(): void {
   const url = new URL(location.href);
@@ -42,7 +43,10 @@ export async function getLicenseState(force = false): Promise<LicenseState> {
   }
   const optimistic = cached?.valid === true;
   try {
-    const response = await fetch(`${BILLING_BASE}/api/v1/products/${SLUG}/verify?license=${encodeURIComponent(token)}`);
+    const response = await fetch(`${billingBase}/api/v1/products/${SLUG}/verify?license=${encodeURIComponent(token)}`);
+    if (response.status === 429) {
+      return { unlocked: optimistic, checking: false, message: optimistic ? 'Using your last verified license while verification is temporarily rate limited.' : 'License verification is temporarily rate limited. Please try again shortly.' };
+    }
     if (!response.ok) throw new Error('Verification service unavailable');
     const verdict = await response.json() as { valid: boolean; reason?: string };
     localStorage.setItem(VERDICT_KEY, JSON.stringify({ valid: verdict.valid, checkedAt: Date.now() } satisfies CachedVerdict));
