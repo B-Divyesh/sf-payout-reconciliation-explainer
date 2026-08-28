@@ -1,39 +1,61 @@
-# Verification handoff — Payout Reconciliation Explainer
+# Repair handoff — Payout Reconciliation Explainer
 
-## Current release decision: **FAIL**
+Work order: `payout-reconciliation-explainer-repair-1`
 
-Independent verification on 2026-08-28 tested commit `09abc53c01e7380b2813e2fee92463407e88b685` against <https://payout-reconciliation-explainer.sociobot.in>. The deployed files are byte-for-byte identical to a fresh local production build of that commit, so these findings apply to the candidate itself.
+Repair commits: `6561543`, `44f5481`, `7178b96`
 
-Do **not** release until the P1 defects in [.factory/verification.md](verification.md) are corrected and reverified:
+Deployed URL: <https://payout-reconciliation-explainer.sociobot.in>
+Artifact: static offline PWA (`dist/`)
 
-1. Buy/checkout returns HTTP 404 and the production artifact embeds the pilot billing host.
-2. A non-zero manual explanation on an otherwise balanced payout leaves the UI falsely labeled “The bank deposit balances” / 100.0% while showing a non-zero remaining variance.
-3. The license verify endpoint returned 100/100 HTTP 200 responses to a concurrent burst; no `429` or `Retry-After` was observed.
+## Release decision
 
-The free three-CSV workflow, exports, 390 px keyboard journey, settled axe scan, service-worker offline reload, tests, typecheck, and production build passed. Full commands, exact reproduction, headers, bundle evidence, and non-blocking deployment findings are in [.factory/verification.md](verification.md).
+The static-product defects from the independent report are repaired and deployed. **Do not mark the entire work order release-ready yet:** the Sociobot billing service's verify endpoint still has no server-side rate limit, which is an external release blocker that this static repository cannot enforce.
 
----
+## What changed
 
-# Original build handoff — Payout Reconciliation Explainer
+- The billing base now defaults to `https://api.sociobot.in` (production), not the pilot service. The deployed app embeds only the production host. `GET /api/v1/products/payout-reconciliation-explainer/checkout` returned HTTP `303` to hosted Dodo checkout on 2026-08-28 UTC. A build-time unit test locks the default checkout URL.
+- Manual explanations may only reduce an outstanding bank variance. A settled payout no longer renders the adjustment form; wrong-sign and overshooting entries are rejected. The reconciliation engine now derives `balanced`/`explained` from the **remaining** variance, so a restored legacy/JSON adjustment cannot falsely claim a balanced result.
+- Exact regression coverage was added for the verifier reproduction: a zero-variance reconciliation plus `+0.12` is `review`, has `-$0.12` remaining, and reports `0%`; the browser test confirms the balanced labelled example exposes no adjustment form. Valid signed explanations remain covered.
+- Added Static Web Apps response policy: CSP, frame protection, permissions policy, manifest MIME type, and immutable cache policy for `/assets/*` and `/art/*`.
+- Removed opacity from the waterfall entrance animation so text contrast never dips during motion. Live axe now has zero serious/critical violations.
+- Fixed a live-only PWA installation bug discovered during repair: Azure consumes `staticwebapp.config.json` rather than serving it, so it must not be precached. The worker build excludes it and fails the build if it re-enters the precache shell.
 
-Work order: `payout-reconciliation-explainer-build-1`  
-Completed: 2026-08-28  
-Deploy class: static PWA, `dist/`
+## Verification evidence
 
-## What was built
+Clean install and local gates:
 
-- A complete three-file workflow for orders/events, processor payout, and bank CSVs.
-- Explicit column mapping with suggested-but-visible fields, ISO currency selection, mixed-currency rejection, source row retention, and integer minor-unit arithmetic (including zero- and three-decimal currencies).
-- Transparent waterfall for orders, refunds, event fees, processor timing/file differences, payout net, and payout-to-bank variance.
-- Exact payout/bank and event/payout reference checks, processor component checks, a readable rules log, and signed manual explanations for timing, bank fees, rounding, or other documented items.
-- Row-level reconciler CSV, a dependency-free valid PDF accountant handoff, print layout, and portable JSON backup/import. Core reconciliation and all exports are free.
-- IndexedDB draft persistence; paid Desk history and mapping presets; explicit erase controls.
-- US $19 one-time Desk unlock through the Sociobot license contract. Hosted checkout and daily verification use the product slug, store only the license locally, never block the free first paint, and include paste-to-restore. Staging defaults to `pilot-api.sociobot.in`; release should set `VITE_BILLING_BASE=https://api.sociobot.in`.
-- Installable manifest, 192/512/maskable icons, deterministic versioned service worker, app-shell precache, offline fallback, in-app update prompt, and an offline status message.
-- Dedicated `/privacy/` and `/terms/` entries, local fonts, light/dark themes, responsive 390 px layout, keyboard/focus support, reduced motion, and print styling.
-- Original generated balance-field illustration in AVIF/WebP/PNG. Source, exact prompt, provenance, and review criteria live in `.factory/design.md` and `assets/src/`.
+```bash
+npm ci                         # 62 packages audited, 0 vulnerabilities
+npm test                       # 4 files, 14 tests passed
+npm run typecheck              # passed
+npm run build                  # passed; dist/index.html exists
+npm run test:e2e               # 8 passed, 2 expected project-specific skips
+npm audit --omit=dev           # 0 vulnerabilities
+npm pack --dry-run             # passed
+```
 
-## Run and verify
+- Built bundle: 47,068 B JS and 21,050 B CSS uncompressed (under 200 KB / 50 KB budgets).
+- Browser local and live desktop journey: labelled three-CSV example reconciles at 100%, CSV/PDF exports work, balanced result has no manual adjustment form, no console/page errors.
+- Live 390 px browser: skip link receives first Tab focus; no horizontal overflow.
+- Live axe-core scan after reconciliation: **0 serious/critical** violations.
+- Live PWA: worker controlled the page; after `context.setOffline(true)`, reload retained `example-events.csv` and showed `Offline · work stays local`; no console errors.
+- Live artifact identity: SHA-256 matches between local `dist/` and production for `/`, `/manifest.webmanifest`, `/offline.html`, `/sw.js`, `/privacy/`, `/terms/`, and `/robots.txt`.
+- Live response policy: CSP, `Permissions-Policy`, `X-Frame-Options: DENY`, and `Referrer-Policy` are present; manifest is `application/manifest+json`; AVIF assets return `Cache-Control: public, max-age=31536000, immutable`.
+- Deploy: `/opt/fleet/lib/deploy-static.sh payout-reconciliation-explainer dist` completed successfully to the existing Azure Static Web App and custom domain returned HTTP 200.
+
+## Remaining external blocker
+
+The factory billing API still needs a server-side limiter for verify (and checkout as appropriate), returning HTTP `429` with `Retry-After`. On 2026-08-28 UTC, a direct production burst matching the verifier's method — **100 requests at concurrency 20** to:
+
+```text
+https://api.sociobot.in/api/v1/products/payout-reconciliation-explainer/verify?license=qa-repair-burst-<n>
+```
+
+returned **100 × 200** and no `Retry-After`. This cannot be repaired in a static PWA repo without changing the shared Sociobot billing service, which is out of this work order's repository/deployment scope. The client now handles a future `429` quietly and preserves a previously verified local license where available.
+
+The worker's skip-waiting, `clients.claim`, and in-app update-notice paths remain implemented and source-reviewed. A brand-new live worker version cannot be induced without another deployment; the installed-worker offline path was executed above.
+
+## Run/deploy
 
 ```bash
 npm ci
@@ -41,30 +63,5 @@ npm test
 npm run typecheck
 npm run build
 npm run test:e2e
+/opt/fleet/lib/deploy-static.sh payout-reconciliation-explainer dist
 ```
-
-Production build command: `npm run build`  
-Deployment directory: `dist/` (contains `index.html` at its root)
-
-Verification completed against `vite preview` on 2026-08-28:
-
-- Vitest: 3 files, 11 tests passed.
-- Playwright 1.58.2: 6 passed, 2 intentionally skipped by project targeting (desktop-only offline and mobile-only 390 px checks); no failures.
-- End-to-end example: 100% payout-to-bank variance explained; CSV and PDF downloads confirmed.
-- Offline: service worker controlled reload passed with imported draft intact while the browser context was offline.
-- Axe 4.10.3: no serious or critical findings in both light and dark result views.
-- Factory `verify-url.sh`: HTTP 200, no console errors, title present, `lang=en`, exactly one `h1`, main landmark present, no missing image alt, no unlabeled buttons.
-- Lighthouse 12.8.2 mobile: Performance **99**, Accessibility **100**, Best Practices **100**, SEO **100**.
-- Lighthouse timings: FCP 1.4 s, LCP 1.8 s, TBT 0 ms, interactive 1.8 s, CLS 0.
-- Initial transfer: 110,348 bytes across 8 requests. Built source bundle: 46.10 KB JS and 21.06 KB CSS before gzip; fonts actually requested total 79.7 KB; mobile AVIF hero 4.7 KB.
-- Two consecutive production builds produced identical `index.html` and `sw.js` checksums.
-- `npm audit --omit=dev`: 0 vulnerabilities.
-- Visual captures and the machine-readable basic verification report are in `.factory/evidence/`.
-
-## Known boundaries and next steps
-
-- The workflow intentionally treats every imported row as one payout batch and one currency. Users must split unrelated periods/currencies first; the UI and README state this.
-- Date values are retained verbatim for audit evidence rather than normalized, because processor and bank exports vary widely in timezone semantics.
-- There are no direct Shopify, processor, bank, accounting, tax, or journal-posting integrations by design.
-- The billing API cannot be end-to-end purchased from this disposable build environment. The contract, return token capture, local caching, once-per-day verify behavior, offline cached verdict, revoked-license lock, and restore UI are implemented. The factory still needs to register the test/production product and set the production billing base during release.
-- Browsers expose PDF saving differently; the app also generates a direct PDF download so the handoff does not depend on print-dialog behavior.
