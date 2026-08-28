@@ -169,7 +169,8 @@ select { appearance: none; padding-right: 36px; background-image: linear-gradien
 .tone-refund .wf-bar { background: var(--violet); }.tone-fee .wf-bar { background: var(--amber); }.tone-variance .wf-bar { background: repeating-linear-gradient(135deg, var(--danger) 0 6px, transparent 6px 10px); border: 1px solid var(--danger); }.tone-total .wf-bar { background: var(--ink); }
 .wf-value { text-align: right; font: 600 .92rem/1.3 'IBM Plex Mono', monospace; }
 .wf-value small { display: block; color: var(--muted); font: .7rem/1.3 'Inter Variable', sans-serif; }
-@keyframes enter-row { from { opacity: 0; transform: translateX(-8px); } }
+/* Keep text fully opaque during entrance so contrast never dips mid-animation. */
+@keyframes enter-row { from { transform: translateX(-8px); } }
 
 .result-columns { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); gap: 32px; margin-top: 40px; }
 .explain-box { padding: 22px; border: 1px solid var(--line); background: var(--paper); }
