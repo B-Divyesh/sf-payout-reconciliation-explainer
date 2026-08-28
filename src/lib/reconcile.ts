@@ -1,4 +1,4 @@
-import { currencyDecimals, parseMoney } from './money';
+import { currencyDecimals, minorToDecimal, parseMoney } from './money';
 import { suggestColumn } from './csv';
 import type {
   AppState, ColumnMapping, CsvData, DatasetKind, ManualAdjustment,
@@ -148,7 +148,7 @@ export function reconcile(
   waterfall.push({ key: 'fees', label: 'Event fees', amountMinor: -eventFeesMinor, runningMinor: running, tone: 'fee', explanation: 'Absolute value of the mapped fee column' });
   waterfall.push({ key: 'expected', label: 'Expected processor payout', amountMinor: 0, runningMinor: expectedPayoutMinor, tone: 'total', explanation: 'Gross orders − refunds − event fees' });
   running += payoutDifferenceMinor;
-  waterfall.push({ key: 'payout-difference', label: 'Processor-file difference', amountMinor: payoutDifferenceMinor, runningMinor: running, tone: 'timing', explanation: 'Reported payout net − expected processor payout' });
+  waterfall.push({ key: 'payout-difference', label: 'Processor timing / file difference', amountMinor: payoutDifferenceMinor, runningMinor: running, tone: 'timing', explanation: 'Reported payout net − expected processor payout; review cutoff timing when non-zero' });
   waterfall.push({ key: 'payout', label: 'Reported payout net', amountMinor: 0, runningMinor: payoutNetMinor, tone: 'total', explanation: `${payouts.length} payout row${payouts.length === 1 ? '' : 's'} summed` });
   running += rawBankVarianceMinor;
   waterfall.push({ key: 'bank-variance', label: 'Payout-to-bank variance', amountMinor: rawBankVarianceMinor, runningMinor: running, tone: rawBankVarianceMinor === 0 ? 'total' : 'variance', explanation: 'Bank deposits − reported payout net' });
@@ -156,11 +156,24 @@ export function reconcile(
 
   const payoutIds = new Set(payouts.map((row) => row.id.toLocaleLowerCase()).filter(Boolean));
   const refMatches = banks.filter((row) => payoutIds.has(row.id.toLocaleLowerCase())).length;
+  const eventRefs = events.filter((row) => row.payoutRef);
+  const eventRefMatches = eventRefs.filter((row) => payoutIds.has(row.payoutRef!.toLocaleLowerCase())).length;
+  let componentCheck = 'Processor component check: gross, refunds, and fees were not all mapped, so reported net is used directly.';
+  const payoutMapping = mappings.payout!;
+  if (payoutMapping.gross && payoutMapping.refunds && payoutMapping.fees) {
+    const componentNet = datasets.payout!.rows.reduce((sum, row) => sum
+      + parseMoney(row[payoutMapping.gross!] ?? '', decimals)
+      - Math.abs(parseMoney(row[payoutMapping.refunds!] ?? '', decimals))
+      - Math.abs(parseMoney(row[payoutMapping.fees!] ?? '', decimals)), 0);
+    componentCheck = `Processor component check: gross − refunds − fees = ${minorToDecimal(componentNet, decimals)}; reported net differs by ${minorToDecimal(payoutNetMinor - componentNet, decimals)} ${currency}.`;
+  }
   const audit = [
     `Currency precision: ${currency} uses ${decimals} decimal place${decimals === 1 ? '' : 's'}; calculations use integer minor units.`,
     `Events rule: positive rows count as orders; negative rows or types containing refund, chargeback, return, or reversal count as refunds.`,
     `Fee rule: ${mappings.events?.fee ? 'the mapped event-fee values are deducted by absolute value' : 'no event fee column was mapped'}.`,
     `Batch rule: all ${events.length} event, ${payouts.length} payout, and ${banks.length} bank rows in these files belong to this reconciliation.`,
+    componentCheck,
+    `Event reference rule: ${eventRefs.length ? `${eventRefMatches} of ${eventRefs.length} event payout references exactly matched an imported payout ID` : 'no event payout references were mapped'}.`,
     `Reference rule: ${mappings.payout?.id && mappings.bank?.reference ? `${refMatches} bank reference${refMatches === 1 ? '' : 's'} exactly matched a payout ID` : 'reference matching was not available; totals and the visible date evidence were used'}.`,
     `Manual explanations: ${adjustments.length} item${adjustments.length === 1 ? '' : 's'} account for the signed payout-to-bank variance only.`,
   ];

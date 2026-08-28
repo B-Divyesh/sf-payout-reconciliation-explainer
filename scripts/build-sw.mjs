@@ -1,7 +1,22 @@
 import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join, relative } from 'node:path';
 
 const dist = new URL('../dist/', import.meta.url);
+
+const entryHtml = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
+const scriptPath = entryHtml.match(/<script type="module" crossorigin src="([^"]+)"><\/script>/)?.[1];
+const stylePath = entryHtml.match(/<link rel="stylesheet" crossorigin href="([^"]+)">/)?.[1];
+if (!scriptPath || !stylePath) throw new Error('Could not find the built entry assets to make the offline shell.');
+const script = (await readFile(join(dist.pathname, scriptPath.slice(1)), 'utf8')).replace(/\n\/\/# sourceMappingURL=.*$/, '');
+const style = await readFile(join(dist.pathname, stylePath.slice(1)), 'utf8');
+for (const page of ['index.html', 'privacy/index.html', 'terms/index.html']) {
+  const path = join(dist.pathname, page);
+  const html = await readFile(path, 'utf8');
+  await writeFile(path, html
+    .replace(/<script type="module" crossorigin src="[^"]+"><\/script>/, `<script type="module">${script}</script>`)
+    .replace(/<link rel="stylesheet" crossorigin href="[^"]+">/, `<style>${style}</style>`));
+}
 
 async function walk(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
@@ -22,7 +37,12 @@ const files = (await walk(dist.pathname))
     if (path.startsWith('/art/')) return path === '/art/balance-field-720.avif';
     return true;
   });
-const revision = Date.now().toString(36);
+const digest = createHash('sha256');
+for (const path of files) {
+  digest.update(path);
+  digest.update(await readFile(join(dist.pathname, path.slice(1))));
+}
+const revision = digest.digest('hex').slice(0, 12);
 const shell = ['/', ...files];
 const source = `const CACHE = 'payout-explainer-${revision}';
 const SHELL = ${JSON.stringify(shell)};
@@ -43,9 +63,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (url.origin !== location.origin) return;
   if (event.request.mode === 'navigate') {
-    event.respondWith(fetch(event.request).then(response => {
-      const copy = response.clone(); caches.open(CACHE).then(cache => cache.put(event.request, copy)); return response;
-    }).catch(async () => (await caches.match(event.request)) || (await caches.match('/index.html')) || caches.match('/offline.html')));
+    event.respondWith(caches.match(event.request, { ignoreSearch: true }).then(cached => cached || caches.match('/index.html')).then(cached => cached || fetch(event.request)).catch(() => caches.match('/offline.html')));
     return;
   }
   event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {

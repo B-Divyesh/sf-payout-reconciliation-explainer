@@ -24,6 +24,7 @@ let historyItems: SavedReconciliation[] = [];
 let presets: { name: string; value: unknown }[] = [];
 let errorMessage = '';
 let liveMessage = '';
+let updateRequested = false;
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
@@ -82,7 +83,7 @@ function renderFileCard(kind: DatasetKind, index: number): string {
 
 function renderFiles(): string {
   return `<section class="panel file-panel" aria-labelledby="files-title"><div class="panel-head"><div><p class="eyebrow">Step 01 · Evidence in</p><h2 id="files-title">Add three source files</h2><p>Nothing uploads. Each CSV is read and saved only in this browser.</p></div><button class="button secondary" type="button" data-action="sample">Use labelled example</button></div>
-    <div class="file-grid">${kinds.map(renderFileCard).join('')}</div></section>`;
+    <div class="file-grid">${kinds.map(renderFileCard).join('')}</div>${errorMessage && !kinds.every((kind) => state.datasets[kind]) ? `<p class="form-error" role="alert">${escapeHtml(errorMessage)}</p>` : ''}</section>`;
 }
 
 function optionList(headers: string[], selected?: string, required = false): string {
@@ -247,7 +248,7 @@ async function handleClick(button: HTMLElement): Promise<void> {
     state.mappings = structuredClone(presets[0].value) as AppState['mappings']; state.mappingConfirmed = false; state.result = undefined; setStateChanged(`${presets[0].name} mapping loaded.`); renderApp(); return;
   }
   if (action === 'remove-license') { clearLicense(); license = { unlocked: false, checking: false, message: 'License removed from this browser.' }; historyItems = []; presets = []; renderApp(); return; }
-  if (action === 'activate-update') { const registration = await navigator.serviceWorker.getRegistration(); registration?.waiting?.postMessage({ type: 'SKIP_WAITING' }); return; }
+  if (action === 'activate-update') { updateRequested = true; const registration = await navigator.serviceWorker.getRegistration(); registration?.waiting?.postMessage({ type: 'SKIP_WAITING' }); return; }
 }
 
 function bindGlobalUi(): void {
@@ -323,7 +324,7 @@ async function registerServiceWorker(): Promise<void> {
       }
     });
   });
-  navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (updateRequested) location.reload(); });
 }
 
 async function init(): Promise<void> {
@@ -332,6 +333,7 @@ async function init(): Promise<void> {
   if (location.pathname.startsWith('/privacy')) { renderLegal('privacy'); void registerServiceWorker(); return; }
   if (location.pathname.startsWith('/terms')) { renderLegal('terms'); void registerServiceWorker(); return; }
   captureReturnedLicense();
+  root.innerHTML = `${header()}<main id="main" class="skeleton"><div><p class="eyebrow">Local workspace</p><h1>Opening your workbench…</h1><p>Reading the draft stored in this browser.</p></div></main>`;
   try { state = (await loadDraft()) ?? emptyState(); } catch { state = emptyState(); errorMessage = 'Local storage is unavailable. You can still reconcile and export in this tab.'; }
   if (state.mappingConfirmed === undefined) state.mappingConfirmed = Boolean(state.result);
   renderApp(); bindGlobalUi();

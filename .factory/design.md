@@ -17,7 +17,7 @@ The light theme resembles warm accountant's paper under a neutral lamp; the dark
 | `--ink` | `#19231D` | `#F3F0E7` | Primary copy |
 | `--muted` | `#59635C` | `#B8C0B7` | Secondary copy |
 | `--line` | `#B9B9AC` | `#51584F` | Rules and controls |
-| `--teal` | `#087F72` | `#54D3C2` | Orders, primary actions |
+| `--teal` | `#087568` | `#54D3C2` | Orders, primary actions |
 | `--teal-ink` | `#FFFFFF` | `#072C28` | On accent |
 | `--amber` | `#B45B07` | `#FFB85C` | Fees and review |
 | `--violet` | `#6750A4` | `#C6B5FF` | Timing differences |
@@ -70,4 +70,3 @@ Primary actions use teal fill; quiet actions are ruled text buttons; destructive
 **Negative list:** no text, no numbers, no watermark, no logos, no brands, no people, no hands, no coins, no credit cards, no laptop, no photorealistic banking UI, no gradients, no neon, no 3D chrome, no clutter.
 
 **Generator:** Azure OpenAI image generation via factory `gen-image.sh`, deployment `factory-image`. Generated 2026-08-28. The output is original to this product and is disclosed in the footer. Candidate source and its exact prompt are retained in `assets/src/`.
-
