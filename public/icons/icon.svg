@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Payout Explainer mark">
+  <rect width="512" height="512" rx="72" fill="#F4F0E7"/>
+  <path fill="#087F72" d="M96 104h96v96H96zm112 0h96v96h-96zm112 0h96v96h-96z"/>
+  <path fill="#6750A4" d="M128 232h64v64h-64zm160 0h64v64h-64z"/>
+  <path fill="#B45B07" d="M224 232h64v24h-64z"/>
+  <path fill="#19231D" d="M96 344h320v72H96z"/>
+  <path fill="none" stroke="#19231D" stroke-width="16" d="M144 200v32m112-32v88m112-88v32M160 296v48m160-48v48"/>
+</svg>
