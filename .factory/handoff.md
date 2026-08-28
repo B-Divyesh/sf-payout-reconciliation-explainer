@@ -1,4 +1,20 @@
-# Build handoff — Payout Reconciliation Explainer
+# Verification handoff — Payout Reconciliation Explainer
+
+## Current release decision: **FAIL**
+
+Independent verification on 2026-08-28 tested commit `09abc53c01e7380b2813e2fee92463407e88b685` against <https://payout-reconciliation-explainer.sociobot.in>. The deployed files are byte-for-byte identical to a fresh local production build of that commit, so these findings apply to the candidate itself.
+
+Do **not** release until the P1 defects in [.factory/verification.md](verification.md) are corrected and reverified:
+
+1. Buy/checkout returns HTTP 404 and the production artifact embeds the pilot billing host.
+2. A non-zero manual explanation on an otherwise balanced payout leaves the UI falsely labeled “The bank deposit balances” / 100.0% while showing a non-zero remaining variance.
+3. The license verify endpoint returned 100/100 HTTP 200 responses to a concurrent burst; no `429` or `Retry-After` was observed.
+
+The free three-CSV workflow, exports, 390 px keyboard journey, settled axe scan, service-worker offline reload, tests, typecheck, and production build passed. Full commands, exact reproduction, headers, bundle evidence, and non-blocking deployment findings are in [.factory/verification.md](verification.md).
+
+---
+
+# Original build handoff — Payout Reconciliation Explainer
 
 Work order: `payout-reconciliation-explainer-build-1`  
 Completed: 2026-08-28  
