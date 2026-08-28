@@ -37,7 +37,9 @@ async function walk(dir) {
 const files = (await walk(dist.pathname))
   .map((file) => `/${relative(dist.pathname, file).replaceAll('\\\\', '/')}`)
   .filter((path) => {
-    if (path.endsWith('.map') || path === '/sw.js') return false;
+    // Azure Static Web Apps consumes this deployment configuration rather than
+    // publishing it, so a precache request would be a 404 and abort install.
+    if (path.endsWith('.map') || path === '/sw.js' || path === '/staticwebapp.config.json') return false;
     if (path.startsWith('/assets/')) return /\.(?:js|css)$/.test(path);
     if (path.startsWith('/art/')) return path === '/art/balance-field-720.avif';
     return true;
@@ -77,6 +79,9 @@ self.addEventListener('fetch', event => {
     return response;
   })));
 });\n`;
+if (source.includes('staticwebapp.config.json')) {
+  throw new Error('Deployment-only staticwebapp.config.json must not be precached by the service worker.');
+}
 await writeFile(new URL('../dist/sw.js', import.meta.url), source);
 
 const index = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
