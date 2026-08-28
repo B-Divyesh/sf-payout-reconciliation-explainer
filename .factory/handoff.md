@@ -40,7 +40,8 @@ Verification completed against `vite preview` on 2026-08-28:
 - Factory `verify-url.sh`: HTTP 200, no console errors, title present, `lang=en`, exactly one `h1`, main landmark present, no missing image alt, no unlabeled buttons.
 - Lighthouse 12.8.2 mobile: Performance **99**, Accessibility **100**, Best Practices **100**, SEO **100**.
 - Lighthouse timings: FCP 1.4 s, LCP 1.8 s, TBT 0 ms, interactive 1.8 s, CLS 0.
-- Initial transfer: 110,348 bytes across 8 requests. Built source bundle: 46.10 KB JS and 21.08 KB CSS before gzip; fonts actually requested total 79.7 KB; mobile AVIF hero 4.7 KB.
+- Initial transfer: 110,348 bytes across 8 requests. Built source bundle: 46.10 KB JS and 21.06 KB CSS before gzip; fonts actually requested total 79.7 KB; mobile AVIF hero 4.7 KB.
+- Two consecutive production builds produced identical `index.html` and `sw.js` checksums.
 - `npm audit --omit=dev`: 0 vulnerabilities.
 - Visual captures and the machine-readable basic verification report are in `.factory/evidence/`.
 
