@@ -1,0 +1,86 @@
+[
+  {
+    "id": "demo-ready",
+    "claim": "Try sample data in one click and see a completed reconciliation.",
+    "where": "landing primary action, demo, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:demo-ready",
+    "sandbox": "fresh browser context; direct /demo; assert banner, completed result, reset, exit, and export"
+  },
+  {
+    "id": "demo-isolation",
+    "claim": "Demo work uses a separate browser database and is discarded when the visitor starts for real.",
+    "where": "demo banner, demo documentation",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:demo-isolation",
+    "sandbox": "seed a marked real draft; enter and reset demo; exit; assert real draft unchanged and demo database deleted"
+  },
+  {
+    "id": "local-privacy",
+    "claim": "The reconciliation flow sends no CSV data, analytics, or tracking requests.",
+    "where": "landing scope section, privacy, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:local-privacy",
+    "sandbox": "record every request during the completed demo and exports; assert every request is same-origin and no account action exists"
+  },
+  {
+    "id": "file-limits",
+    "claim": "Each CSV must have headers, no more than 50,000 rows, and a size no greater than 10 MB.",
+    "where": "file inputs, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:file-limits",
+    "sandbox": "leave /demo for real mode; submit fixtures over each limit and assert a specific rejection"
+  },
+  {
+    "id": "free-exports",
+    "claim": "CSV, accountant PDF, print, and JSON exports are free and preserve row evidence.",
+    "where": "results, paid section, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:free-exports",
+    "sandbox": "completed /demo; download and inspect CSV, PDF, and JSON; intercept the print call"
+  },
+  {
+    "id": "offline-reload",
+    "claim": "The completed demo reloads offline after its first visit.",
+    "where": "README, PWA behavior",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:offline-reload",
+    "sandbox": "dedicated new browser context; load /demo; wait for service worker; set that context offline; reload and assert completed result"
+  },
+  {
+    "id": "draft-persistence",
+    "claim": "A real current draft remains after refresh on the same device.",
+    "where": "saved-history section, privacy, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:draft-persistence",
+    "sandbox": "start at /demo; enter real mode; import an order events CSV; reload and assert its filename remains"
+  },
+  {
+    "id": "saved-history-license",
+    "claim": "US $19 once adds named history and reusable mappings; reconciliation and exports remain free.",
+    "where": "paid section, terms, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:saved-history-license",
+    "sandbox": "start at /demo; enter real mode; assert price, checkout contract, free scope; mock verification and assert activation"
+  },
+  {
+    "id": "erase-scope",
+    "claim": "Erase current draft removes the draft but keeps saved history.",
+    "where": "erase dialog, privacy",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:erase-scope",
+    "sandbox": "seed current draft and saved history; confirm erase; inspect IndexedDB stores"
+  },
+  {
+    "id": "visible-reconciliation",
+    "claim": "The sample reconciles order events, the processor payout, and the bank deposit with visible source rows.",
+    "where": "demo result, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:visible-reconciliation",
+    "sandbox": "completed /demo; assert totals, zero variance, source filenames, and row counts"
+  },
+  {
+    "id": "no-integrations",
+    "claim": "The app has no bank connection, commerce connection, or ledger-posting action.",
+    "where": "scope section, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:no-integrations",
+    "sandbox": "start at /demo; open Home; assert scope text and absence of connection or posting controls"
+  },
+  {
+    "id": "build-output",
+    "claim": "The build creates a static PWA in dist with every public route and service worker.",
+    "where": "README deployment section",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:build-output",
+    "sandbox": "open /demo, then assert built root, demo, legal, 404, and service-worker files exist and are nonempty"
+  }
+]
