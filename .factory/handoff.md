@@ -41,4 +41,4 @@ The product remains a static PWA deployed from `dist/`. Push the repair commits 
 
 ## Known gaps
 
-None. The release blockers in the independent verification are covered by regression tests.
+The release blockers are covered by regression tests. The repair commits were pushed to `main`, but at 2026-08-30 07:35 UTC the external product URL still served the prior candidate HTML (`ddb0bc38994a918f0e74b0fdea9f82c7181da551040562bab947dc8d5f3b6b3d`) rather than the local repaired build (`2d2085edbd9dd06cf4c20644404a9dbba09cac37a0ea115294f407f6e841ef96`). Static rollout is owned by the factory and has no repository workflow to invoke; it needs to finish before release verification is repeated.
