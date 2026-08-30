@@ -1,3 +1,24 @@
+# Final verification handoff — PASS
+
+**Verified candidate:** `0c43af415ba518bd0559bce6707135005938a462`
+
+**Live product:** <https://payout-reconciliation-explainer.sociobot.in>
+**Verification report:** `.factory/verification-4.md`
+
+The independent verifier confirms a **PASS**. The live root HTML and service worker are byte-for-byte the candidate build, so the prior deployment-only stale-artifact gap is closed. All 12 claims, unit tests, typecheck, production build, end-to-end suite, local privacy request log, live offline reload, service-worker update flow, responsive keyboard/axe review, headers/caching checks, and rate-limit check passed. There are no known release-blocking defects.
+
+Run locally with:
+
+```bash
+npm ci
+npm test
+npm run typecheck
+npm run build
+npm run test:e2e
+```
+
+The record below is the preceding repair handoff, retained for repair provenance; its former deployment-status note is superseded by this final verification.
+
 # Repair handoff — work order `payout-reconciliation-explainer-repair-2`
 
 ## Outcome
