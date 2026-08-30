@@ -39,7 +39,7 @@ export async function getLicenseState(force = false): Promise<LicenseState> {
   if (!token) return { unlocked: false, checking: false, message: '' };
   const cached = JSON.parse(localStorage.getItem(VERDICT_KEY) || 'null') as CachedVerdict | null;
   if (!force && cached && Date.now() - cached.checkedAt < DAY) {
-    return { unlocked: cached.valid, checking: false, message: cached.valid ? 'Desk license active.' : 'License no longer active.' };
+    return { unlocked: cached.valid, checking: false, message: cached.valid ? 'Saved-history license active.' : 'License no longer active.' };
   }
   const optimistic = cached?.valid === true;
   try {
@@ -50,7 +50,7 @@ export async function getLicenseState(force = false): Promise<LicenseState> {
     if (!response.ok) throw new Error('Verification service unavailable');
     const verdict = await response.json() as { valid: boolean; reason?: string };
     localStorage.setItem(VERDICT_KEY, JSON.stringify({ valid: verdict.valid, checkedAt: Date.now() } satisfies CachedVerdict));
-    return { unlocked: verdict.valid, checking: false, message: verdict.valid ? 'Desk license active.' : 'License no longer active. You can restore another license below.' };
+    return { unlocked: verdict.valid, checking: false, message: verdict.valid ? 'Saved-history license active.' : 'License no longer active. You can restore another license below.' };
   } catch {
     return { unlocked: optimistic, checking: false, message: optimistic ? 'Using your last verified license while offline.' : 'Could not verify this license. Check your connection and try again.' };
   }

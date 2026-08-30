@@ -151,8 +151,8 @@ export function reconcile(
   waterfall.push({ key: 'payout-difference', label: 'Processor timing / file difference', amountMinor: payoutDifferenceMinor, runningMinor: running, tone: 'timing', explanation: 'Reported payout net − expected processor payout; review cutoff timing when non-zero' });
   waterfall.push({ key: 'payout', label: 'Reported payout net', amountMinor: 0, runningMinor: payoutNetMinor, tone: 'total', explanation: `${payouts.length} payout row${payouts.length === 1 ? '' : 's'} summed` });
   running += rawBankVarianceMinor;
-  waterfall.push({ key: 'bank-variance', label: 'Payout-to-bank variance', amountMinor: rawBankVarianceMinor, runningMinor: running, tone: rawBankVarianceMinor === 0 ? 'total' : 'variance', explanation: 'Bank deposits − reported payout net' });
-  waterfall.push({ key: 'bank', label: 'Bank deposits', amountMinor: 0, runningMinor: bankMinor, tone: 'total', explanation: `${banks.length} bank row${banks.length === 1 ? '' : 's'} summed` });
+  waterfall.push({ key: 'bank-variance', label: 'Payout-to-bank variance', amountMinor: rawBankVarianceMinor, runningMinor: running, tone: rawBankVarianceMinor === 0 ? 'total' : 'variance', explanation: 'Bank deposit − reported payout net' });
+  waterfall.push({ key: 'bank', label: 'Bank deposit', amountMinor: 0, runningMinor: bankMinor, tone: 'total', explanation: `${banks.length} bank row${banks.length === 1 ? '' : 's'} summed` });
 
   const payoutIds = new Set(payouts.map((row) => row.id.toLocaleLowerCase()).filter(Boolean));
   const refMatches = banks.filter((row) => payoutIds.has(row.id.toLocaleLowerCase())).length;

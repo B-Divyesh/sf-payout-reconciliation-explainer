@@ -1,11 +1,17 @@
 import type { AppState, SavedReconciliation } from './types';
 
-const DATABASE = 'payout-reconciliation-explainer';
+const REAL_DATABASE = 'payout-reconciliation-explainer';
+const DEMO_DATABASE = 'demo:payout-reconciliation-explainer';
 const VERSION = 1;
+let databaseName = REAL_DATABASE;
+
+export function useDemoStorage(enabled: boolean): void {
+  databaseName = enabled ? DEMO_DATABASE : REAL_DATABASE;
+}
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE, VERSION);
+    const request = indexedDB.open(databaseName, VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains('draft')) db.createObjectStore('draft');
@@ -14,6 +20,15 @@ function openDb(): Promise<IDBDatabase> {
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
+  });
+}
+
+export function deleteDemoStorage(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DEMO_DATABASE);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error('Close other demo tabs, then reset the demo again.'));
   });
 }
 

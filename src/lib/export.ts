@@ -79,7 +79,7 @@ export function accountantPdfBlob(state: AppState, result: ReconciliationResult)
     { text: `Event fees: -${money(result.eventFeesMinor)}` },
     { text: `Expected processor payout: ${money(result.expectedPayoutMinor)}` },
     { text: `Reported payout net: ${money(result.payoutNetMinor)}` },
-    { text: `Bank deposits: ${money(result.bankMinor)}` },
+    { text: `Bank deposit: ${money(result.bankMinor)}` },
     { text: `Raw payout-to-bank variance: ${money(result.rawBankVarianceMinor)}` },
     { text: `Remaining variance after explanations: ${money(result.remainingVarianceMinor)}` },
     { text: '' },

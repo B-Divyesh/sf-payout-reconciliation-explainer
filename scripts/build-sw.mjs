@@ -15,12 +15,12 @@ const stylePath = entryHtml.match(/<link rel="stylesheet" crossorigin href="([^"
 if (!scriptPath || !stylePath) throw new Error('Could not find the built entry assets to make the offline shell.');
 const script = (await readFile(join(dist.pathname, scriptPath.slice(1)), 'utf8')).replace(/\n\/\/# sourceMappingURL=.*$/, '');
 const style = await readFile(join(dist.pathname, stylePath.slice(1)), 'utf8');
-for (const page of ['index.html', 'privacy/index.html', 'terms/index.html']) {
+for (const page of ['index.html', 'demo/index.html', 'privacy/index.html', 'terms/index.html', '404.html']) {
   const path = join(dist.pathname, page);
   const html = await readFile(path, 'utf8');
   await writeFile(path, html
-    .replace(/<script type="module" crossorigin src="[^"]+"><\/script>/, `<script type="module">${script}</script>`)
-    .replace(/<link rel="stylesheet" crossorigin href="[^"]+">/, `<style>${style}</style>`));
+    .replace(/<script type="module" crossorigin src="[^"]+"><\/script>/, () => `<script type="module">${script}</script>`)
+    .replace(/<link rel="stylesheet" crossorigin href="[^"]+">/, () => `<style>${style}</style>`));
 }
 
 async function walk(dir) {
@@ -70,7 +70,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (url.origin !== location.origin) return;
   if (event.request.mode === 'navigate') {
-    const fallback = url.pathname.startsWith('/privacy') ? '/privacy/index.html' : url.pathname.startsWith('/terms') ? '/terms/index.html' : url.pathname === '/' ? '/index.html' : '/offline.html';
+    const fallback = url.pathname.startsWith('/demo') ? '/demo/index.html' : url.pathname.startsWith('/privacy') ? '/privacy/index.html' : url.pathname.startsWith('/terms') ? '/terms/index.html' : url.pathname === '/' ? '/index.html' : '/404.html';
     event.respondWith(caches.match(event.request, { ignoreSearch: true }).then(cached => cached || caches.match(fallback)).then(cached => cached || fetch(event.request)).catch(() => caches.match('/offline.html')));
     return;
   }
