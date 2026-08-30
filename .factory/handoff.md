@@ -1,26 +1,39 @@
-# Repair handoff — perfection loop round 1
+# Verification handoff — work order `payout-reconciliation-explainer-verify-3`
 
 ## Outcome
 
-All findings in `.factory/review-1.md` are resolved. The original balance-field visual identity and static offline PWA class remain intact.
+**FAIL — do not release candidate `b72d1000195cad83bb08cb46e3da66bd9726377c`.**
 
-The live product is <https://payout-reconciliation-explainer.sociobot.in>. The isolated sample is <https://payout-reconciliation-explainer.sociobot.in/demo>.
+Verified live URL: <https://payout-reconciliation-explainer.sociobot.in>
 
-## What changed
+Full evidence: [`.factory/verification-3.md`](verification-3.md)
 
-- Rewrote the first screen around one clear payout-reconciliation job and one sample-data action.
-- Added a completed, resettable demo with its own IndexedDB namespace and safe exit.
-- Added 12 registered claims and one observable Playwright test for each claim.
-- Added real Demo, Privacy, Terms, and styled 404 entries with route metadata.
-- Added History API navigation, route announcements, h1 focus, dialog focus return, and shared navigation.
-- Added the required three-step explanation and explicit product limits.
-- Added Open Graph art, a touch icon, sitemap coverage, and AVIF MIME configuration.
-- Fixed the HTML inliner so minified `$&` sequences cannot reinsert the removed script tag.
-- Standardized product terms and completed `.factory/copy-audit.md`.
+The live site is byte-identical to the candidate build for the app shell, routes, manifest, service worker, and main JS/CSS assets. No product code was changed during verification.
 
-## Verification
+## Release-blocking defect
 
-Run from a clean checkout:
+At 390×844, several visible links do not meet the required 44×44 CSS px target size. Measured examples include the wordmark at 118×34, Home at 38×44, Demo at 37×44, Terms at 40×44, the refund link at 122×17, and footer links at 25 px high. This violates the mandatory accessibility/design contract even though axe and Lighthouse report no serious/critical finding.
+
+Add target-area padding or minimum dimensions without overlap, then add a Playwright assertion covering every visible interactive target at 390 px.
+
+## Other defect
+
+Invalid manual-explanation input renders the same `role="alert"` twice: once in the mapping panel and once in the explanation form. Use form-specific error state and one associated alert.
+
+## What passed
+
+- All 12 commands in `.factory/claims.json` passed individually before other QA.
+- The cold first-read and one-click completed demo gates passed.
+- `npm ci`, 14 unit tests, typecheck, production build, 33 browser tests with one intentional skip, audit, and diff check passed.
+- Representative reconciliation, exports, boundary limits, invalid input, and recovery passed.
+- Live/local artifact hashes matched.
+- Live privacy request logging found no cross-origin request during reconciliation and export.
+- Offline reload and a forced service-worker update cycle passed.
+- Checkout returned 303; a 60-request verify burst observed an allowance of 30, followed by 30 responses with 429 and `Retry-After: 4`.
+- Factory URL checks, keyboard navigation, reduced motion, responsive layout, and axe scans passed apart from the manual target-size defect.
+- Lighthouse mobile scored 100 in performance, accessibility, best practices, and SEO; LCP was 1.4 s, TBT 40 ms, and CLS 0.
+
+## Re-run
 
 ```bash
 npm ci
@@ -30,28 +43,4 @@ npm run build
 npm run test:e2e
 ```
 
-Results on 30 August 2026:
-
-- `npm test`: 14/14 passed.
-- `npm run typecheck`: passed.
-- `npm run build`: passed; `dist/index.html`, physical route entries, `404.html`, and `sw.js` produced.
-- `npm run test:e2e`: 33 passed across desktop and 390×844 mobile; one intentional duplicate offline test skipped on mobile.
-- Every command in `.factory/claims.json`: passed from a clean clone.
-- Worker URL verifier: root and demo each report one h1, one main, `lang=en`, complete image alt text, and zero console errors.
-- Playwright axe: zero serious or critical findings in light and dark themes across every route.
-- SWA emulator: real `/demo` returns 200; unknown route returns 404; both AVIF assets return `image/avif` with `nosniff`.
-- Lighthouse mobile on the live URL: performance 100, accessibility 100, best practices 100, SEO 100; LCP 1.4 s, CLS 0, TBT 0 ms.
-- Built JS is 52.01 KB raw / 17.18 KB gzip. Built CSS is 24.06 KB raw / 5.88 KB gzip.
-- Live cold browser checks: zero console errors, no 390 px overflow, one h1, one main, working route focus and Back behavior.
-- Live status checks: `/demo` is 200, unknown paths are 404, and both AVIF assets return `image/avif`.
-- Live `/?demo=1` exports produced reconciler CSV, accountant PDF, and JSON backup downloads.
-
-Evidence is in `.factory/evidence/` and the complete finding map is `.factory/polish-1.md`.
-
-## Deployment
-
-The built `dist/` was deployed to the existing `sf-payout-reconciliation-explainer` Static Web App. No infrastructure, DNS, billing, database, or unrelated resource was changed.
-
-## Known gaps and next steps
-
-None for this work order.
+Then run every command in `.factory/claims.json`, measure all visible interactive rectangles at 390×844, verify only one alert is exposed for an invalid explanation, repeat the offline/update checks, and compare the live artifact hashes to the repaired commit.
