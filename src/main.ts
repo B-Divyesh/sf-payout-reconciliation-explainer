@@ -22,7 +22,8 @@ let state: AppState = emptyState();
 let license: LicenseState = { unlocked: false, checking: true, message: '' };
 let historyItems: SavedReconciliation[] = [];
 let presets: { name: string; value: unknown }[] = [];
-let errorMessage = '';
+let workspaceError = '';
+let adjustmentError = '';
 let liveMessage = '';
 let updateRequested = false;
 let isDemoMode = location.pathname.startsWith('/demo') || new URLSearchParams(location.search).get('demo') === '1';
@@ -87,7 +88,7 @@ function renderFileCard(kind: DatasetKind, index: number): string {
 
 function renderFiles(): string {
   return `<section class="panel file-panel" aria-labelledby="files-title"><div class="panel-head"><div><p class="eyebrow">Step 01 · Add evidence</p><h2 id="files-title">Add three source files</h2><p>The app reads each CSV in this browser.</p></div><a class="button secondary" href="/demo">Try it with sample data</a></div>
-    <div class="file-grid">${kinds.map(renderFileCard).join('')}</div>${errorMessage && !kinds.every((kind) => state.datasets[kind]) ? `<p class="form-error" role="alert">${escapeHtml(errorMessage)}</p>` : ''}</section>`;
+    <div class="file-grid">${kinds.map(renderFileCard).join('')}</div>${workspaceError && !kinds.every((kind) => state.datasets[kind]) ? `<p class="form-error" role="alert">${escapeHtml(workspaceError)}</p>` : ''}</section>`;
 }
 
 function optionList(headers: string[], selected?: string, required = false): string {
@@ -104,7 +105,7 @@ function renderMapping(): string {
       return `<fieldset class="mapping-group"><legend><strong>${kindLabels[kind].title}</strong></legend>${mappingRequirements(kind).map((requirement) => `<div class="field"><label for="map-${kind}-${requirement.field}">${requirement.label}${requirement.required ? ' *' : ''}</label><select id="map-${kind}-${requirement.field}" data-map-kind="${kind}" data-map-field="${requirement.field}" ${requirement.required ? 'required' : ''}>${optionList(dataset.headers, mapping[requirement.field], requirement.required)}</select><span class="field-help">${requirement.help}</span></div>`).join('')}</fieldset>`;
     }).join('')}</div>
     <div class="action-row"><button class="button" type="button" data-action="reconcile">Run reconciliation</button>${license.unlocked ? '<button class="button secondary" type="button" data-action="save-preset">Save mapping preset</button>' : ''}${presets.length && license.unlocked ? '<button class="button quiet" type="button" data-action="load-preset">Use saved preset</button>' : ''}</div>
-    ${errorMessage ? `<p class="form-error" role="alert">${escapeHtml(errorMessage)}</p>` : ''}</section>`;
+    ${workspaceError ? `<p class="form-error" role="alert">${escapeHtml(workspaceError)}</p>` : ''}</section>`;
 }
 
 function statusCopy(): { title: string; text: string; symbol: string } {
@@ -130,7 +131,7 @@ function renderResults(): string {
         ${state.adjustments.length ? `<ul class="adjustment-list">${state.adjustments.map((item) => `<li><span><strong>${escapeHtml(item.category)}</strong><br><span class="small">${escapeHtml(item.note)}</span></span><span class="money">${money(item.amountMinor)}</span><button class="button quiet small-button" type="button" data-action="remove-adjustment" data-id="${item.id}" aria-label="Remove ${escapeHtml(item.note)}">Remove</button></li>`).join('')}</ul>` : '<p class="small">No manual explanations yet.</p>'}
         ${Math.abs(result.remainingVarianceMinor) <= 1
     ? '<p class="locked-note"><strong>No explanation needed.</strong> The remaining variance is within one minor unit, so an adjustment would overstate the evidence trail.</p>'
-    : `<form id="adjustment-form"><div class="field"><label for="adjustment-category">Reason</label><select id="adjustment-category"><option value="timing">Timing difference</option><option value="bank-fee">Bank fee</option><option value="rounding">Rounding</option><option value="other">Other documented item</option></select></div><div class="field"><label for="adjustment-amount">Signed amount (${result.currency})</label><input id="adjustment-amount" inputmode="decimal" required placeholder="-0.12"></div><div class="field"><label for="adjustment-note">Evidence note</label><textarea id="adjustment-note" required maxlength="240" placeholder="Why this amount belongs here"></textarea></div><button class="button secondary" type="submit">Add explanation</button>${errorMessage ? `<p class="form-error" role="alert">${escapeHtml(errorMessage)}</p>` : ''}</form>`}
+    : `<form id="adjustment-form"><div class="field"><label for="adjustment-category">Reason</label><select id="adjustment-category"><option value="timing">Timing difference</option><option value="bank-fee">Bank fee</option><option value="rounding">Rounding</option><option value="other">Other documented item</option></select></div><div class="field"><label for="adjustment-amount">Signed amount (${result.currency})</label><input id="adjustment-amount" inputmode="decimal" required placeholder="-0.12"${adjustmentError ? ' aria-describedby="adjustment-error" aria-invalid="true"' : ''}>${adjustmentError ? `<p class="form-error" id="adjustment-error" role="alert">${escapeHtml(adjustmentError)}</p>` : ''}</div><div class="field"><label for="adjustment-note">Evidence note</label><textarea id="adjustment-note" required maxlength="240" placeholder="Why this amount belongs here"></textarea></div><button class="button secondary" type="submit">Add explanation</button></form>`}
       </div></div>
     <div class="action-row"><button class="button" type="button" data-action="export-csv">Export reconciler CSV</button><button class="button secondary" type="button" data-action="export-pdf">Export accountant PDF</button><button class="button quiet" type="button" data-action="print">Print report</button><button class="button quiet" type="button" data-action="export-backup">Export JSON backup</button></div>
   </section>`;
@@ -139,7 +140,7 @@ function renderResults(): string {
 function renderPaid(): string {
   return `<section class="paid-section" aria-labelledby="desk-title"><div class="paid-grid"><div><p class="eyebrow">Optional saved-history license</p><h2 id="desk-title">Save past reconciliations</h2><p>Pay US $19 once to add named history and reusable column mappings on this device.</p><p>Reconciliation and every export remain free.</p>
     ${license.unlocked ? `<p class="locked-note"><strong>Saved history is active.</strong> ${escapeHtml(license.message)}</p><div class="action-row"><button class="button" type="button" data-action="save-history" ${state.result ? '' : 'disabled'}>Save this reconciliation</button><button class="button quiet" type="button" data-action="remove-license">Remove license</button></div>`
-      : `<div class="action-row"><a class="button" href="${checkoutUrl}">Buy saved history for US $19</a></div><p class="small muted">One-time purchase. Sociobot/Dodo is the merchant of record. <a href="/terms/">Read refund terms</a>.</p><div class="locked-note"><strong>${license.checking ? 'Checking for a license…' : 'Free tools are ready.'}</strong> ${escapeHtml(license.message)}</div><form id="license-form"><div class="field"><label for="license-token">Have a license? Paste it here</label><div class="license-form"><input id="license-token" type="text" autocomplete="off" required aria-describedby="license-help"><button class="button secondary" type="submit">Verify license</button></div><span class="field-help" id="license-help">The token stays in this browser.</span></div></form>`}</div>
+      : `<div class="action-row"><a class="button" href="${checkoutUrl}">Buy saved history for US $19</a></div><p class="small muted">One-time purchase. Sociobot/Dodo is the merchant of record. <a class="inline-link-target" href="/terms/">Read refund terms</a>.</p><div class="locked-note"><strong>${license.checking ? 'Checking for a license…' : 'Free tools are ready.'}</strong> ${escapeHtml(license.message)}</div><form id="license-form"><div class="field"><label for="license-token">Have a license? Paste it here</label><div class="license-form"><input id="license-token" type="text" autocomplete="off" required aria-describedby="license-help"><button class="button secondary" type="submit">Verify license</button></div><span class="field-help" id="license-help">The token stays in this browser.</span></div></form>`}</div>
     <div><h3>Saved reconciliations</h3>${license.unlocked ? (historyItems.length ? `<ul class="history-list">${historyItems.map((item) => `<li><p><strong>${escapeHtml(item.name)}</strong><br><span class="small muted">${new Date(item.savedAt).toLocaleString()}</span></p><span><button class="button quiet small-button" data-action="restore-history" data-id="${item.id}">Open</button><button class="button quiet small-button" data-action="delete-history" data-id="${item.id}">Delete</button></span></li>`).join('')}</ul>` : '<p class="muted">No saved reconciliations yet. Run one, then save it here.</p>') : '<p class="muted">Your current draft remains after a refresh. The license adds named history and reusable mappings.</p>'}</div></div>
     <div class="data-tools"><h3>Back up or remove local data</h3><p class="small muted">The JSON backup contains your current files, mappings, and explanations.</p><div class="action-row"><button class="button secondary" type="button" data-action="export-backup">Export JSON backup</button><label class="button quiet" for="backup-file">Import JSON backup</label><input class="file-input" id="backup-file" type="file" accept="application/json,.json"><button class="button danger" type="button" data-action="erase">Erase current draft</button></div></div>
   </section>`;
@@ -174,7 +175,7 @@ function announce(message: string): void {
 
 function setStateChanged(message?: string): void {
   state.updatedAt = new Date().toISOString();
-  void saveDraft(state).catch(() => { errorMessage = 'This browser could not save the local draft. Export a JSON backup before closing.'; renderApp(); });
+  void saveDraft(state).catch(() => { workspaceError = 'This browser could not save the local draft. Export a JSON backup before closing.'; renderApp(); });
   if (message) announce(message);
 }
 
@@ -186,7 +187,7 @@ async function addFile(kind: DatasetKind, file: File): Promise<void> {
   state.mappings[kind] = suggestMapping(parsed);
   state.mappingConfirmed = false;
   state.result = undefined;
-  errorMessage = '';
+  workspaceError = '';
   setStateChanged(`${file.name} added with ${parsed.rows.length} rows.`);
   renderApp();
 }
@@ -204,7 +205,8 @@ function loadSample(complete = false): void {
   }
   state.reconciliationName = 'Sample payout PO-0822';
   state.currency = 'USD'; state.mappingConfirmed = false; state.result = undefined; state.adjustments = [];
-  errorMessage = '';
+  workspaceError = '';
+  adjustmentError = '';
   if (complete) {
     state.result = reconcile(state.datasets, state.mappings, state.currency, state.adjustments);
     state.mappingConfirmed = true;
@@ -217,12 +219,12 @@ function loadSample(complete = false): void {
 function runReconciliation(): void {
   try {
     state.result = reconcile(state.datasets, state.mappings, state.currency, state.adjustments);
-    state.mappingConfirmed = true; errorMessage = '';
+    state.mappingConfirmed = true; workspaceError = ''; adjustmentError = '';
     setStateChanged(`Reconciliation complete: ${state.result.explainedPercent.toFixed(1)}% of bank variance explained.`);
     renderApp();
     document.querySelector('#results-title')?.scrollIntoView({ block: 'start' });
   } catch (error) {
-    state.result = undefined; state.mappingConfirmed = false; errorMessage = (error as Error).message;
+    state.result = undefined; state.mappingConfirmed = false; workspaceError = (error as Error).message;
     renderApp();
     document.querySelector('.form-error')?.scrollIntoView({ block: 'center' });
   }
@@ -268,7 +270,7 @@ async function handleClick(button: HTMLElement): Promise<void> {
   if (action === 'export-backup') { exportBackup(state); announce('JSON backup downloaded.'); return; }
   if (action === 'erase') { eraseReturnFocus = button; (document.querySelector('#erase-dialog') as HTMLDialogElement).showModal(); return; }
   if (action === 'cancel-erase') { (document.querySelector('#erase-dialog') as HTMLDialogElement).close(); eraseReturnFocus?.focus(); return; }
-  if (action === 'confirm-erase') { await clearDraft(); state = emptyState(); errorMessage = ''; renderApp(); announce('Current local work erased.'); return; }
+  if (action === 'confirm-erase') { await clearDraft(); state = emptyState(); workspaceError = ''; adjustmentError = ''; renderApp(); announce('Current local work erased.'); return; }
   if (action === 'save-history' && state.result && license.unlocked) {
     const item: SavedReconciliation = { id: crypto.randomUUID(), name: state.reconciliationName, savedAt: new Date().toISOString(), state: structuredClone(state) };
     await saveHistory(item); await refreshPaidData(); renderApp(); announce('Reconciliation saved to history.'); return;
@@ -312,14 +314,14 @@ function bindGlobalUi(): void {
 root.addEventListener('change', (event) => {
   const input = event.target as HTMLInputElement | HTMLSelectElement;
   if (input.dataset.fileKind && input instanceof HTMLInputElement && input.files?.[0]) {
-    void addFile(input.dataset.fileKind as DatasetKind, input.files[0]).catch((error) => { errorMessage = (error as Error).message; renderApp(); }); return;
+    void addFile(input.dataset.fileKind as DatasetKind, input.files[0]).catch((error) => { workspaceError = (error as Error).message; renderApp(); }); return;
   }
   if (input.dataset.mapKind && input.dataset.mapField) {
     const kind = input.dataset.mapKind as DatasetKind;
     const mapping = state.mappings[kind] ?? ({} as ColumnMapping);
     const field = input.dataset.mapField as keyof ColumnMapping;
     if (input.value) mapping[field] = input.value; else delete mapping[field];
-    state.mappings[kind] = mapping; state.mappingConfirmed = false; state.result = undefined; errorMessage = ''; setStateChanged(); return;
+    state.mappings[kind] = mapping; state.mappingConfirmed = false; state.result = undefined; workspaceError = ''; adjustmentError = ''; setStateChanged(); return;
   }
   if (input.id === 'currency') { state.currency = input.value.toUpperCase(); state.mappingConfirmed = false; state.result = undefined; setStateChanged(); return; }
   if (input.id === 'reconciliation-name') { state.reconciliationName = input.value.trim() || 'Untitled reconciliation'; setStateChanged(); return; }
@@ -328,7 +330,7 @@ root.addEventListener('change', (event) => {
       const parsed = JSON.parse(text) as { product?: string; state?: AppState };
       if (parsed.product !== 'payout-reconciliation-explainer' || parsed.state?.version !== 1) throw new Error('This is not a compatible Payout Explainer backup.');
       state = parsed.state; setStateChanged('JSON backup imported.'); renderApp();
-    }).catch((error) => { errorMessage = (error as Error).message; renderApp(); });
+    }).catch((error) => { workspaceError = (error as Error).message; renderApp(); });
   }
 });
 
@@ -350,7 +352,7 @@ root.addEventListener('submit', (event) => {
       validateManualAdjustment(state.result, amountMinor);
       state.adjustments.push({ id: crypto.randomUUID(), category: (document.querySelector('#adjustment-category') as HTMLSelectElement).value as 'timing' | 'bank-fee' | 'rounding' | 'other', amountMinor, note, createdAt: new Date().toISOString() });
       runReconciliation();
-    } catch (error) { errorMessage = (error as Error).message; announce(errorMessage); renderApp(); }
+    } catch (error) { adjustmentError = (error as Error).message; announce(adjustmentError); renderApp(); }
   }
   if (form.id === 'license-form') {
     const token = (document.querySelector('#license-token') as HTMLInputElement).value.trim(); storeLicense(token); license = { unlocked: false, checking: true, message: 'Checking license…' }; renderApp();
@@ -432,7 +434,7 @@ async function renderRoute(focusHeading = false): Promise<void> {
     setMetadata('Payout Reconciliation Explainer — explain differences', 'Reconcile a processor payout with order events and a bank deposit in your browser.', '/');
     captureReturnedLicense();
     root.innerHTML = `${header()}<main id="main" class="skeleton"><div><p class="eyebrow">Reconciliation workspace</p><h1>Opening your saved draft…</h1></div></main>`;
-    try { state = (await loadDraft()) ?? emptyState(); } catch { state = emptyState(); errorMessage = 'This browser could not open local storage. You can still work and export in this tab.'; }
+    try { state = (await loadDraft()) ?? emptyState(); } catch { state = emptyState(); workspaceError = 'This browser could not open local storage. You can still work and export in this tab.'; }
     if (state.mappingConfirmed === undefined) state.mappingConfirmed = Boolean(state.result);
     renderApp();
     void getLicenseState().then(async (next) => {

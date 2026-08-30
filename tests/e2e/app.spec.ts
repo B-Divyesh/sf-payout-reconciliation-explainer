@@ -258,6 +258,47 @@ test('erase dialog contains focus and returns it after Escape', async ({ page })
   await expect(trigger).toBeFocused();
 });
 
+test('invalid manual explanations expose one associated error', async ({ page }) => {
+  await openDemo(page);
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await page.locator('#file-events').setInputFiles({
+    name: 'orders.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('order_id,event_date,event_type,amount,fee,payout_id,currency\nORD-1,2026-08-01,sale,15.00,0.50,PO-1,USD'),
+  });
+  await page.locator('#file-payout').setInputFiles({
+    name: 'payout.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('payout_id,payout_date,net,currency\nPO-1,2026-08-02,12.50,USD'),
+  });
+  await page.locator('#file-bank').setInputFiles({
+    name: 'bank.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('deposit_date,reference,amount,currency\n2026-08-03,PO-1,12.38,USD'),
+  });
+  await page.getByRole('button', { name: 'Run reconciliation' }).click();
+  await page.getByLabel(/Signed amount/).fill('0.12');
+  await page.getByLabel('Evidence note').fill('Bank timing evidence');
+  await page.getByRole('button', { name: 'Add explanation' }).click();
+  const error = page.locator('#adjustment-error');
+  await expect(error).toContainText('same sign as the remaining variance');
+  await expect(page.getByRole('alert')).toHaveCount(1);
+  await expect(page.getByLabel(/Signed amount/)).toHaveAttribute('aria-describedby', 'adjustment-error');
+  await expect(page.getByLabel(/Signed amount/)).toHaveAttribute('aria-invalid', 'true');
+});
+
+test('at 390px every visible interactive target is at least 44px', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'the mobile project fixes the viewport at 390px');
+  const selector = 'a[href], button:not(:disabled), input:not([type="hidden"]):not([type="file"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [role="button"]:not([aria-disabled="true"])';
+  for (const path of ['/', '/demo', '/privacy/', '/terms/', '/does-not-exist']) {
+    await page.goto(path);
+    const undersized = await page.locator(selector).evaluateAll((elements) => elements.flatMap((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      if (style.display === 'none' || style.visibility === 'hidden' || rect.width === 0 || rect.height === 0) return [];
+      return rect.width < 44 || rect.height < 44 ? [{ label: (element.getAttribute('aria-label') || element.textContent || element.tagName).trim(), width: rect.width, height: rect.height }] : [];
+    }));
+    expect(undersized, `${path} has an undersized visible interactive target`).toEqual([]);
+  }
+});
+
 test('passes keyboard, mobile, console, and axe checks on every route', async ({ page }, testInfo) => {
   const errors: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
