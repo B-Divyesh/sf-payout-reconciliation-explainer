@@ -1,39 +1,54 @@
-# Review handoff — Payout Reconciliation Explainer
+# Repair handoff — perfection loop round 1
 
-**Work order:** `payout-reconciliation-explainer-review-1`
-**Reviewed live URL:** <https://payout-reconciliation-explainer.sociobot.in>
-**Decision:** **FAIL — do not accept or release as complete.**
+## Outcome
 
-## What was done
+All findings in `.factory/review-1.md` are resolved. The original balance-field visual identity and static offline PWA class remain intact.
 
-- Wrote the full adversarial first-read review in [review-1.md](review-1.md).
-- Opened the live site in fresh 390 px and desktop browser contexts before scrolling.
-- Exercised the labelled sample and direct `/demo` and `?demo=1` entries; inspected storage namespace, request log, routes, metadata, title, focus, and prior verification evidence.
-- Read the brief, visual thesis, prior handoff/verification records, README, source, tests, and deployment configuration. No product code was modified.
+The live product is <https://payout-reconciliation-explainer.sociobot.in>. The isolated sample is <https://payout-reconciliation-explainer.sociobot.in/demo>.
 
-## Verification run
+## What changed
+
+- Rewrote the first screen around one clear payout-reconciliation job and one sample-data action.
+- Added a completed, resettable demo with its own IndexedDB namespace and safe exit.
+- Added 12 registered claims and one observable Playwright test for each claim.
+- Added real Demo, Privacy, Terms, and styled 404 entries with route metadata.
+- Added History API navigation, route announcements, h1 focus, dialog focus return, and shared navigation.
+- Added the required three-step explanation and explicit product limits.
+- Added Open Graph art, a touch icon, sitemap coverage, and AVIF MIME configuration.
+- Fixed the HTML inliner so minified `$&` sequences cannot reinsert the removed script tag.
+- Standardized product terms and completed `.factory/copy-audit.md`.
+
+## Verification
+
+Run from a clean checkout:
 
 ```bash
 npm ci
-npm test              # 14 passed
-npm run typecheck     # passed
-npm run build         # passed; dist/ produced
-npm run test:e2e      # 8 passed; 2 expected project-target skips
+npm test
+npm run typecheck
+npm run build
+npm run test:e2e
 ```
 
-## Blocking gaps
+Results on 30 August 2026:
 
-- No isolated, direct, one-click demo. `/demo` renders the offline fallback; `?demo=1` writes the labelled data to the normal IndexedDB database and has no banner/reset/real-data exit.
-- `.factory/claims.json` and all tagged claim tests are missing, despite many privacy, offline, export, limit, price, and storage claims.
-- The hero does not identify its user, uses a metaphor rather than the job, and offers two competing first actions.
-- Required metadata, apple touch icon, designed HTTP 404, sitemap demo route, header navigation, and route-change focus/announcement are missing.
-- The landing skeleton lacks on-page “How it works” and “What this app does not do” sections.
-- Earlier AVIF MIME finding remains live: `.avif` is served as `application/octet-stream`.
+- `npm test`: 14/14 passed.
+- `npm run typecheck`: passed.
+- `npm run build`: passed; `dist/index.html`, physical route entries, `404.html`, and `sw.js` produced.
+- `npm run test:e2e`: 33 passed across desktop and 390×844 mobile; one intentional duplicate offline test skipped on mobile.
+- Every command in `.factory/claims.json`: passed from a clean clone.
+- Worker URL verifier: root and demo each report one h1, one main, `lang=en`, complete image alt text, and zero console errors.
+- Playwright axe: zero serious or critical findings in light and dark themes across every route.
+- SWA emulator: real `/demo` returns 200; unknown route returns 404; both AVIF assets return `image/avif` with `nosniff`.
+- Lighthouse mobile: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.8 s, CLS 0, TBT 0 ms.
+- Built JS is 52.01 KB raw / 17.18 KB gzip. Built CSS is 24.06 KB raw / 5.88 KB gzip.
 
-## Known boundary
+Evidence is in `.factory/evidence/` and the complete finding map is `.factory/polish-1.md`.
 
-The work order prohibits accessing resources outside this product. I therefore did not re-contact the separate Sociobot billing API while checking prior billing/rate-limit reports. The product’s live checkout link and source default now point at the documented production API; see the review for this limited confirmation.
+## Deployment
 
-## Next steps
+Build `dist/`, then deploy it to the existing `sf-payout-reconciliation-explainer` Static Web App. No infrastructure, DNS, billing, database, or unrelated resource change is required.
 
-Implement every finding in [review-1.md](review-1.md), add observable demo-based claim tests, then rerun the entire review from fresh desktop and mobile contexts. This commit contains documentation only.
+## Known gaps and next steps
+
+None for this work order.

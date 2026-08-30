@@ -1,32 +1,38 @@
 # Payout Reconciliation Explainer
 
-An offline-first web workbench for small ecommerce operators and bookkeepers. It explains one processor payout against order/refund events and bank deposits, keeps the arithmetic visible, and exports an evidence CSV plus a real accountant handoff PDF.
+A local payout tool for small ecommerce operators and bookkeepers. Reconcile order events, one processor payout, and a bank deposit.
 
 Live product: <https://payout-reconciliation-explainer.sociobot.in>
 
+Try the completed sample: <https://payout-reconciliation-explainer.sociobot.in/demo>
+
 ## What it does
 
-- Imports orders/events, processor payout, and bank CSVs locally.
-- Requires the user to review column mappings and a single ISO currency.
-- Calculates in integer minor units, including zero- and three-decimal currencies.
-- Separates orders, refunds, event fees, processor-file differences, and payout-to-bank variance in an auditable waterfall.
-- Lets users document signed timing, bank-fee, rounding, or other evidence-backed differences.
-- Exports a row-level reconciler CSV, accountant PDF, printable report, and full JSON backup.
-- Persists the active draft in IndexedDB and works after refresh or offline installation.
-- Offers an optional US $19 one-time Desk license for reusable mappings and named reconciliation history. The core workflow and every export remain free.
+- Shows a completed sample reconciliation in one click. (`demo-ready`)
+- Keeps sample work separate from real drafts. (`demo-isolation`)
+- Shows source rows and arithmetic in the result. (`visible-reconciliation`)
+- Exports CSV, accountant PDF, print, and JSON files for free. (`free-exports`)
+- Keeps the current real draft after refresh. (`draft-persistence`)
+- Reloads the completed sample offline after its first visit. (`offline-reload`)
+- Rejects CSVs without headers, above 10 MB, or above 50,000 rows. (`file-limits`)
+- Sends no CSV data, analytics, or tracking requests during reconciliation. (`local-privacy`)
+- Adds saved history and reusable mappings with an optional US $19 license. (`saved-history-license`)
+- Removes only the current draft when you confirm “Erase current draft.” (`erase-scope`)
 
-This is a reconciliation aid, not accounting or tax advice. It does not connect to banks or commerce platforms, create ledger entries, or upload financial files.
+The app has no bank connection, commerce connection, or ledger-posting action. (`no-integrations`)
+
+This is a reconciliation aid. It is not accounting, legal, or tax advice.
 
 ## Run locally
 
-Requires Node.js 22 or newer.
+Use Node.js 22 or newer.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Open the printed local URL. “Use labelled example” provides a complete safe test path.
+Open the printed URL. Use `/demo` for the isolated sample.
 
 ## Test and build
 
@@ -37,34 +43,33 @@ npm run build
 npm run test:e2e
 ```
 
-`npm run build` is the deployment command. It writes the static app to `./dist`, with `dist/index.html` at its root. The build step inlines the small entry CSS/JS into each HTML entry and generates a deterministic, versioned service worker so the workbench reloads reliably offline.
+Every visitor-facing claim is listed in [`.factory/claims.json`](.factory/claims.json). Each entry names its exact browser test.
 
-Playwright is pinned to `1.58.2`. The e2e suite checks the complete example workflow, downloads, axe serious/critical findings, 390 px layout, keyboard entry, console errors, draft persistence, and offline reload.
+The build writes the static PWA to `dist/`. Playwright is pinned to version `1.58.2`.
 
 ## CSV expectations
 
-Every file needs a header row. The UI suggests likely columns but does not reconcile until the user reviews them.
+Use one currency and one payout period. Confirm the suggested mapping before reconciling real files.
 
-- Orders/events: date and amount are required; ID, type, fee, payout reference, and currency are optional. Negative amounts or types containing `refund`, `chargeback`, `return`, or `reversal` become deductions.
-- Processor payout: date and net are required; payout ID, gross, refunds, fees, and currency are optional.
-- Bank: date and amount are required; reference and currency are optional.
-
-All imported rows are treated as one payout period. Split currencies and unrelated batches before importing. Limits are 10 MB and 50,000 rows per file.
+- Order events CSV: date and amount are required.
+- Processor payout CSV: date and net amount are required.
+- Bank deposit CSV: date and amount are required.
 
 ## Privacy and storage
 
-CSV data never leaves the browser. The current draft, named history, and presets use IndexedDB. A license token and daily cached verdict use localStorage. There are no analytics, third-party runtime scripts, or CDN fonts. See `/privacy/` and `/terms/` in the app.
+The current draft, saved history, and mapping presets use IndexedDB. The license token and cached verdict use localStorage.
 
-## Billing configuration
+Read the product’s [privacy page](https://payout-reconciliation-explainer.sociobot.in/privacy/) and [terms](https://payout-reconciliation-explainer.sociobot.in/terms/).
 
-Checkout and verification use the Sociobot billing contract with the product slug in the path; no payment provider or product ID is embedded. Production defaults to `https://api.sociobot.in`; a registered staging product may explicitly override it:
+## Deployment
 
-```bash
-VITE_BILLING_BASE=https://api.sociobot.in npm run build
-```
+Run `npm run build`, then deploy `dist/` as the configured static artifact. The factory owns infrastructure and DNS.
+
+The checkout and license verification URLs use the Sociobot billing contract. No payment provider identifier is embedded in this app.
 
 ## Project notes
 
+- [Demo sandbox](.factory/demo.md)
 - [Visual system](.factory/design.md)
-- [Build handoff](.factory/handoff.md)
+- [Repair handoff](.factory/handoff.md)
 - [MIT license](LICENSE)

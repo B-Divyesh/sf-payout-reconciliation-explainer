@@ -56,6 +56,7 @@ Primary actions use teal fill; quiet actions are ruled text buttons; destructive
 
 1. `public/art/balance-field.webp` and AVIF/PNG companions: an original generated abstract still life showing transaction tiles resolving toward a settlement bar. It clarifies the mental model in the opening state. It contains no people, logos, text, or implied integrations.
 2. App icons and interface symbols are original hand-authored SVG geometry using the palette; SVG is preferred for precision and size.
+3. `public/art/social-preview.png` is a 1200×630 center crop composed from the generated balance-field artwork. `public/apple-touch-icon.png` is derived from the hand-authored app icon.
 
 ### Image prompt sheet
 
@@ -70,3 +71,5 @@ Primary actions use teal fill; quiet actions are ruled text buttons; destructive
 **Negative list:** no text, no numbers, no watermark, no logos, no brands, no people, no hands, no coins, no credit cards, no laptop, no photorealistic banking UI, no gradients, no neon, no 3D chrome, no clutter.
 
 **Generator:** Azure OpenAI image generation via factory `gen-image.sh`, deployment `factory-image`. Generated 2026-08-28. The output is original to this product and is disclosed in the footer. Candidate source and its exact prompt are retained in `assets/src/`.
+
+The polish round kept the original balance-field direction. It added a ruled amber demo strip, a broken-balance 404 composition, and responsive route navigation using the same tokens and geometry.
