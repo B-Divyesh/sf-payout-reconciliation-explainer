@@ -40,14 +40,17 @@ Results on 30 August 2026:
 - Worker URL verifier: root and demo each report one h1, one main, `lang=en`, complete image alt text, and zero console errors.
 - Playwright axe: zero serious or critical findings in light and dark themes across every route.
 - SWA emulator: real `/demo` returns 200; unknown route returns 404; both AVIF assets return `image/avif` with `nosniff`.
-- Lighthouse mobile: performance 99, accessibility 100, best practices 100, SEO 100; LCP 1.8 s, CLS 0, TBT 0 ms.
+- Lighthouse mobile on the live URL: performance 100, accessibility 100, best practices 100, SEO 100; LCP 1.4 s, CLS 0, TBT 0 ms.
 - Built JS is 52.01 KB raw / 17.18 KB gzip. Built CSS is 24.06 KB raw / 5.88 KB gzip.
+- Live cold browser checks: zero console errors, no 390 px overflow, one h1, one main, working route focus and Back behavior.
+- Live status checks: `/demo` is 200, unknown paths are 404, and both AVIF assets return `image/avif`.
+- Live `/?demo=1` exports produced reconciler CSV, accountant PDF, and JSON backup downloads.
 
 Evidence is in `.factory/evidence/` and the complete finding map is `.factory/polish-1.md`.
 
 ## Deployment
 
-Build `dist/`, then deploy it to the existing `sf-payout-reconciliation-explainer` Static Web App. No infrastructure, DNS, billing, database, or unrelated resource change is required.
+The built `dist/` was deployed to the existing `sf-payout-reconciliation-explainer` Static Web App. No infrastructure, DNS, billing, database, or unrelated resource was changed.
 
 ## Known gaps and next steps
 

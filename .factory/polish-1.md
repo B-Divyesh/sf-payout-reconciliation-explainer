@@ -35,7 +35,11 @@ Target: <https://payout-reconciliation-explainer.sociobot.in>
 - Accessibility: serious/critical axe checks pass in light and dark themes on `/`, `/demo`, `/privacy/`, `/terms/`, and 404.
 - Offline: `@claim:offline-reload` passes in a dedicated browser context.
 - Static host: `/demo` is 200, unknown paths are 404 with the designed page, and AVIF responses use `image/avif`.
-- Performance: Lighthouse mobile 99 performance, 100 accessibility, 100 best practices, and 100 SEO; LCP 1.8 s, CLS 0, TBT 0 ms.
+- Clean clone: all 12 claim commands passed at `11432886c9d101453bdd6379bd388268bee7bb18`.
+- Live cold checks: `/`, `/demo`, `/?demo=1`, `/privacy/`, and `/terms/` return 200. `/does-not-exist` returns 404 with the designed page.
+- Live demo: the banner and completed result render at 390×844; CSV, PDF, and JSON downloads complete; reset and exit remove the demo database.
+- Live privacy: the checked demo flow issued only same-origin requests and logged no browser errors.
+- Live performance: Lighthouse mobile scored 100 in performance, accessibility, best practices, and SEO; LCP 1.4 s, CLS 0, TBT 0 ms.
 - Screenshots: `.factory/evidence/polish-1-landing-desktop.png`, `.factory/evidence/polish-1-landing-mobile.png`, `.factory/evidence/polish-1-demo-mobile.png`.
 
 No review finding remains open.
