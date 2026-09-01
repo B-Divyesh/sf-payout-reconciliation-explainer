@@ -1,24 +1,28 @@
-# Review 2 handoff
+# Polish round 2 handoff
 
 ## Outcome
 
-Adversarial first-read review 2 is complete at candidate `76dc171a5053a10ebc14542372fda4a3cabc45f4`.
+Adversarial review 2 is fully repaired and deployed at <https://payout-reconciliation-explainer.sociobot.in>. The deployed product code is commit `fa03226a9e00f27d6cd4ddd70ab0607a4e84dc01`.
 
-Verdict: **FAIL** with eight findings in `.factory/review-2.md`. The live first screen, one-click demo, sandbox isolation, offline reload, routing, metadata, accessibility baseline, visual identity, and local quality gates passed. The blockers are claim accuracy, incomplete tagged claim coverage, unlisted privacy/payment/import claims, and the partly unresolved terminology finding from review 1.
+The product now shows actual source rows and original values, exports that evidence in the accountant PDF, proves paid history and mapping presets end to end, and accurately describes license and checkout data flow. All import requirements are registered claims. The first-screen and README terminology rewrite is complete.
 
-No product code was changed.
+## What changed
 
-## Verification performed
+- Added accessible desktop tables and stacked mobile evidence rows for every imported source row.
+- Added source row numbers, mapped fields, and original field/value pairs to the accountant PDF.
+- Expanded `.factory/claims.json` from 12 to 15 claims.
+- Strengthened incomplete claim tests for one-click demo entry, every export, saved history, reusable mappings, and every file limit.
+- Added dedicated claims for required columns, license-verification privacy, and hosted checkout behavior.
+- Replaced inaccurate token and merchant wording with observable, tested statements.
+- Standardized “order events,” “processor payout,” “bank deposits,” “sample data,” and “saved-history license.”
+- Rewrote technical README terms in plain language and updated the 81-character verb-first catalog description.
+- Preserved the balance-field paper-ledger visual system and added responsive evidence styling within it.
 
-- Opened the live root cold in fresh 390 × 844 and 1440 × 900 Chromium contexts.
-- Entered the completed demo in one click; confirmed banner, reset, exit, isolated IndexedDB namespace, untouched seeded real draft, offline reload, same-origin request log, and zero console errors.
-- Ran every `.factory/claims.json` command separately from clean clone `/tmp/payout-review-2-clean-S1UdOk`; all commands exited successfully, but four tagged tests do not cover their complete wording.
-- Ran `npm test`, `npm run typecheck`, `npm run build`, and `npm run test:e2e` from that clone: 14 unit tests passed; 36 browser tests passed; 2 intentional project skips.
-- Ran the factory URL verifier on live `/` and `/demo`; both passed.
-- Checked all public routes, internal links, the checkout response, GitHub source link, route focus/Back behavior, 404 status, headers, AVIF MIME, touch targets, and axe coverage.
-- Confirmed live `index.html` and `sw.js` hashes match the clean candidate build.
+The per-finding map is in [polish-2.md](polish-2.md).
 
-## Re-run
+## Verification
+
+Run locally:
 
 ```bash
 npm ci
@@ -28,13 +32,33 @@ npm run build
 npm run test:e2e
 ```
 
-Then run every command in `.factory/claims.json` separately and repeat the live mobile/desktop, demo-isolation, request-log, offline, route, link, and copy checks.
+Results:
 
-## Files changed
+- Unit: 14 passed.
+- TypeScript: passed.
+- Production build: passed; `dist/index.html` exists.
+- Browser: 40 passed across desktop Chromium and 390 × 844 mobile; 2 intentional duplicate offline-context runs skipped.
+- Claims: every one of the 15 exact claim commands passed separately from clean clone `/tmp/payout-polish2-final-lbyEVY` at deployed code commit `fa03226`.
+- Accessibility: axe found no serious or critical issues across root, demo, legal, and 404 routes in desktop/mobile and light/dark modes.
+- Offline: the completed demo reloaded in a dedicated offline browser context.
+- Privacy: the complete demo/export flow made only same-origin requests. The license test proved only the token is sent in a mocked verification GET.
+- Performance budget: JavaScript 53.76 KB raw / 17.68 KB gzip; CSS 25.91 KB raw / 6.21 KB gzip.
+- Local Lighthouse: 99 performance, 100 accessibility, 100 best practices, 100 SEO; LCP 1.8 s, CLS 0, TBT 0 ms.
+- Live Lighthouse: 100 in all four categories; LCP 1.4 s, CLS 0, TBT 0 ms.
 
-- `.factory/review-2.md`
-- `.factory/handoff.md`
+## Deployment and live checks
 
-## Work left
+Only the existing `sf-payout-reconciliation-explainer` Static Web App was accessed. The build was uploaded directly to its production environment. No DNS, database, key vault, billing configuration, or unrelated resource was read or modified.
 
-Implement the concrete fixes in F-2-1 through F-2-8, update the claims registry and tagged tests, then conduct the next review from scratch. Deployment, infrastructure, DNS, databases, billing configuration, and unrelated resources were not modified.
+- Root and `/demo` pass the factory URL verifier with no console errors.
+- `/`, `/demo`, `/privacy/`, `/terms/`, manifest, robots, and sitemap return 200.
+- A cold unknown URL returns HTTP 404 with the designed page.
+- AVIF assets return `image/avif`.
+- Live `index.html` matches the local build byte for byte at SHA-256 `a8d5e049b97aebe6ad4c2b0d310a8086af9d7e9b7036b5997ab66d516f86885a`.
+- A fresh 390 px live browser passed the first screen, demo click/query, source rows, PDF content, reset/exit isolation, route focus, privacy request log, and offline reload checks.
+
+Evidence is under `.factory/evidence/polish-2-*`.
+
+## Known gaps and next steps
+
+No known acceptance gap remains. The live checkout link was verified without following it or contacting a payment provider, in keeping with the work-order resource boundary.
