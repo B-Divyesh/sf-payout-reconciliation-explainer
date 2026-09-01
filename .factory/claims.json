@@ -4,7 +4,7 @@
     "claim": "Try sample data in one click and see a completed reconciliation.",
     "where": "landing primary action, demo, README",
     "test": "npm run test:e2e -- --project=chromium --grep @claim:demo-ready",
-    "sandbox": "fresh browser context; direct /demo; assert banner, completed result, reset, exit, and export"
+    "sandbox": "fresh browser context; open landing; click the primary sample action once; assert /demo, banner, completed result, reset, exit, and export"
   },
   {
     "id": "demo-isolation",
@@ -15,7 +15,7 @@
   },
   {
     "id": "local-privacy",
-    "claim": "The reconciliation flow sends no CSV data, analytics, or tracking requests.",
+    "claim": "No account is required. The reconciliation flow sends no CSV data, analytics, or tracking requests.",
     "where": "landing scope section, privacy, README",
     "test": "npm run test:e2e -- --project=chromium --grep @claim:local-privacy",
     "sandbox": "record every request during the completed demo and exports; assert every request is same-origin and no account action exists"
@@ -29,10 +29,10 @@
   },
   {
     "id": "free-exports",
-    "claim": "CSV, accountant PDF, print, and JSON exports are free and preserve row evidence.",
+    "claim": "A row-level CSV, accountant PDF, printable report, and JSON backup are available without a license.",
     "where": "results, paid section, README",
     "test": "npm run test:e2e -- --project=chromium --grep @claim:free-exports",
-    "sandbox": "completed /demo; download and inspect CSV, PDF, and JSON; intercept the print call"
+    "sandbox": "completed /demo without a license; inspect a known source row in CSV, PDF, print DOM, and JSON; intercept the print call"
   },
   {
     "id": "offline-reload",
@@ -53,7 +53,28 @@
     "claim": "US $19 once adds named history and reusable mappings; reconciliation and exports remain free.",
     "where": "paid section, terms, README",
     "test": "npm run test:e2e -- --project=chromium --grep @claim:saved-history-license",
-    "sandbox": "start at /demo; enter real mode; assert price, checkout contract, free scope; mock verification and assert activation"
+    "sandbox": "enter real mode; activate a fixture license; reconcile and name work; save, reload, reopen, and delete history; save and apply a changed mapping preset; inspect both database stores"
+  },
+  {
+    "id": "license-verification-privacy",
+    "claim": "The license token is stored in this browser and sent to Sociobot only for license checks; CSV contents are not sent.",
+    "where": "license form, privacy, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:license-verification-privacy",
+    "sandbox": "import a CSV containing a unique marker; mock verification; assert the GET contains only the token query value, no body or CSV marker, and the token is stored locally"
+  },
+  {
+    "id": "hosted-checkout",
+    "claim": "Payment opens on Sociobot's hosted checkout; this app does not load payment forms or receive card details.",
+    "where": "paid section, privacy, terms, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:hosted-checkout",
+    "sandbox": "assert no card fields or external payment scripts in the app; intercept the exact product checkout navigation and assert a GET to the Sociobot URL"
+  },
+  {
+    "id": "required-columns",
+    "claim": "Order events require date and amount; processor payouts require date and net amount; bank deposits require date and amount.",
+    "where": "mapping form, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:required-columns",
+    "sandbox": "clear each of the six required mappings in turn; assert its source-specific error; repair it and complete reconciliation"
   },
   {
     "id": "erase-scope",
@@ -64,10 +85,10 @@
   },
   {
     "id": "visible-reconciliation",
-    "claim": "The sample reconciles order events, the processor payout, and the bank deposit with visible source rows.",
+    "claim": "The sample reconciles order events, the processor payout, and bank deposits with visible source rows and original values.",
     "where": "demo result, README",
     "test": "npm run test:e2e -- --project=chromium --grep @claim:visible-reconciliation",
-    "sandbox": "completed /demo; assert totals, zero variance, source filenames, and row counts"
+    "sandbox": "completed /demo; assert totals and zero variance; inspect sample-events.csv row 2 for ORD-1001, its date, mapped amount, and original values"
   },
   {
     "id": "no-integrations",
@@ -78,7 +99,7 @@
   },
   {
     "id": "build-output",
-    "claim": "The build creates a static PWA in dist with every public route and service worker.",
+    "claim": "The build creates an installable offline site in dist with every public route and service worker.",
     "where": "README deployment section",
     "test": "npm run test:e2e -- --project=chromium --grep @claim:build-output",
     "sandbox": "open /demo, then assert built root, demo, legal, 404, and service-worker files exist and are nonempty"

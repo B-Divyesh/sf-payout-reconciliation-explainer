@@ -28,7 +28,7 @@ export function exportReconcilerCsv(state: AppState, result: ReconciliationResul
     lines.push(['payout', row.row, row.id, row.date, 'reported payout net', minorToDecimal(row.amountMinor, result.decimals), result.currency, 'included', '']);
   }
   for (const row of result.banks) {
-    lines.push(['bank', row.row, row.id, row.date, 'bank deposit', minorToDecimal(row.amountMinor, result.decimals), result.currency, 'included', '']);
+    lines.push(['bank', row.row, row.id, row.date, 'bank deposits', minorToDecimal(row.amountMinor, result.decimals), result.currency, 'included', '']);
   }
   for (const adjustment of state.adjustments) {
     lines.push(['explanation', '', adjustment.id, adjustment.createdAt.slice(0, 10), adjustment.category, minorToDecimal(adjustment.amountMinor, result.decimals), result.currency, 'user explained', adjustment.note]);
@@ -79,7 +79,7 @@ export function accountantPdfBlob(state: AppState, result: ReconciliationResult)
     { text: `Event fees: -${money(result.eventFeesMinor)}` },
     { text: `Expected processor payout: ${money(result.expectedPayoutMinor)}` },
     { text: `Reported payout net: ${money(result.payoutNetMinor)}` },
-    { text: `Bank deposit: ${money(result.bankMinor)}` },
+    { text: `Bank deposits: ${money(result.bankMinor)}` },
     { text: `Raw payout-to-bank variance: ${money(result.rawBankVarianceMinor)}` },
     { text: `Remaining variance after explanations: ${money(result.remainingVarianceMinor)}` },
     { text: '' },
@@ -90,9 +90,14 @@ export function accountantPdfBlob(state: AppState, result: ReconciliationResult)
     ...result.audit.map((text) => ({ text: `- ${text}` })),
     { text: '' },
     { text: 'SOURCE EVIDENCE', bold: true },
-    { text: `Events: ${state.datasets.events?.fileName ?? ''} (${result.events.length} rows)` },
-    { text: `Payout: ${state.datasets.payout?.fileName ?? ''} (${result.payouts.length} rows)` },
-    { text: `Bank: ${state.datasets.bank?.fileName ?? ''} (${result.banks.length} rows)` },
+    ...([
+      ['Order events', state.datasets.events?.fileName ?? '', result.events],
+      ['Processor payout', state.datasets.payout?.fileName ?? '', result.payouts],
+      ['Bank deposits', state.datasets.bank?.fileName ?? '', result.banks],
+    ] as const).flatMap(([label, fileName, rows]) => [
+      { text: `${label}: ${fileName} (${rows.length} rows)`, bold: true },
+      ...rows.map((row) => ({ text: `Source row ${row.row} | ID ${row.id} | Date ${row.date} | Amount ${minorToDecimal(row.amountMinor, result.decimals)} ${result.currency} | Original ${Object.entries(row.original).map(([key, value]) => `${key}=${value}`).join('; ')}` })),
+    ]),
     { text: '' },
     { text: 'This is a reconciliation aid, not accounting or tax advice. Source files remain on the user device.' },
   ];

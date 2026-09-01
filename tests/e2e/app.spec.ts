@@ -3,11 +3,24 @@ import { readFile } from 'node:fs/promises';
 import axe from 'axe-core';
 
 const origin = 'http://127.0.0.1:4173';
+const checkout = 'https://api.sociobot.in/api/v1/products/payout-reconciliation-explainer/checkout';
+
+const sampleFiles = {
+  events: { name: 'order-events.csv', mimeType: 'text/csv', buffer: Buffer.from('order_id,event_date,event_type,amount,fee,payout_id,currency\nORD-2001,2026-08-18,sale,120.00,3.78,PO-2000,USD\nORD-2002,2026-08-19,sale,80.00,2.60,PO-2000,USD\nREF-2001,2026-08-20,refund,-25.00,0.00,PO-2000,USD') },
+  payout: { name: 'processor-payout.csv', mimeType: 'text/csv', buffer: Buffer.from('payout_id,payout_date,gross,refunds,fees,net,currency\nPO-2000,2026-08-22,200.00,25.00,6.38,168.62,USD') },
+  bank: { name: 'bank-deposits.csv', mimeType: 'text/csv', buffer: Buffer.from('deposit_date,reference,amount,currency\n2026-08-23,PO-2000,168.50,USD\n2026-08-24,PO-2000,0.12,USD') },
+} as const;
+
+async function uploadSampleFiles(page: Page): Promise<void> {
+  await page.locator('#file-events').setInputFiles(sampleFiles.events);
+  await page.locator('#file-payout').setInputFiles(sampleFiles.payout);
+  await page.locator('#file-bank').setInputFiles(sampleFiles.bank);
+}
 
 async function openDemo(page: Page): Promise<void> {
   await page.goto('/demo');
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'The bank deposit balances' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
 }
 
 async function putRealRecords(page: Page): Promise<void> {
@@ -37,34 +50,31 @@ async function putRealRecords(page: Page): Promise<void> {
   });
 }
 
-test('@claim:demo-ready opens a completed sample directly', async ({ page }) => {
-  await openDemo(page);
+test('@claim:demo-ready opens a completed sample from the landing action in one click', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('h1')).toHaveText('Reconcile a payout with order events and bank deposits.');
+  await page.getByRole('link', { name: 'Try it with sample data' }).first().click();
+  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reset demo' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start for real' })).toBeVisible();
   await expect(page.getByText('100.0%').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Export accountant PDF' })).toBeVisible();
 });
 
-test('landing reaches the completed demo in one click', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.locator('h1')).toHaveText('Reconcile a payout with orders and bank deposits.');
-  await page.getByRole('link', { name: 'Try it with sample data' }).first().click();
-  await expect(page).toHaveURL(/\/demo$/);
-  await expect(page.getByRole('heading', { name: 'The bank deposit balances' })).toBeVisible();
-});
-
 test('query-string demo entry opens the same isolated completed sample', async ({ page }) => {
   await page.goto('/?demo=1');
   await expect(page).toHaveTitle('Demo — Payout Reconciliation Explainer');
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'The bank deposit balances' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
 });
 
 test('@claim:demo-isolation keeps real data unchanged and discards demo data', async ({ page }) => {
   await page.goto('/');
   await putRealRecords(page);
   await page.getByRole('link', { name: 'Demo', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'The bank deposit balances' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
   let databases = await page.evaluate(async () => (await indexedDB.databases()).map((item) => item.name));
   expect(databases).toContain('demo:payout-reconciliation-explainer');
   expect(databases).toContain('payout-reconciliation-explainer');
@@ -97,6 +107,12 @@ test('@claim:local-privacy keeps the complete demo flow same-origin', async ({ p
   const pdf = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export accountant PDF' }).click();
   await pdf;
+  const json = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export JSON backup' }).click();
+  await json;
+  await page.evaluate(() => { window.print = () => document.documentElement.setAttribute('data-private-print-called', 'yes'); });
+  await page.getByRole('button', { name: 'Print report' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-private-print-called', 'yes');
   expect(requests.filter((url) => !url.startsWith(origin))).toEqual([]);
   await expect(page.getByRole('link', { name: /sign in|create account/i })).toHaveCount(0);
 });
@@ -104,14 +120,16 @@ test('@claim:local-privacy keeps the complete demo flow same-origin', async ({ p
 test('@claim:file-limits rejects oversized, headerless, and over-row-limit CSVs', async ({ page }) => {
   await openDemo(page);
   await page.getByRole('button', { name: 'Start for real' }).click();
-  const input = page.locator('#file-events');
-  await input.setInputFiles({ name: 'oversized.csv', mimeType: 'text/csv', buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 65) });
-  await expect(page.getByRole('alert')).toContainText('larger than 10 MB');
-  await input.setInputFiles({ name: 'headerless.csv', mimeType: 'text/csv', buffer: Buffer.from('') });
-  await expect(page.getByRole('alert')).toContainText(/header|empty/i);
-  const tooManyRows = `event_date,amount\n${'2026-08-01,1\n'.repeat(50_001)}`;
-  await input.setInputFiles({ name: 'too-many.csv', mimeType: 'text/csv', buffer: Buffer.from(tooManyRows) });
-  await expect(page.getByRole('alert')).toContainText('more than 50,000 rows');
+  for (const kind of ['events', 'payout', 'bank']) {
+    const input = page.locator(`#file-${kind}`);
+    await input.setInputFiles({ name: `${kind}-oversized.csv`, mimeType: 'text/csv', buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 65) });
+    await expect(page.getByRole('alert')).toContainText('larger than 10 MB');
+    await input.setInputFiles({ name: `${kind}-headerless.csv`, mimeType: 'text/csv', buffer: Buffer.from('') });
+    await expect(page.getByRole('alert')).toContainText(/header|empty/i);
+    const tooManyRows = `date,amount\n${'2026-08-01,1\n'.repeat(50_001)}`;
+    await input.setInputFiles({ name: `${kind}-too-many.csv`, mimeType: 'text/csv', buffer: Buffer.from(tooManyRows) });
+    await expect(page.getByRole('alert')).toContainText('more than 50,000 rows');
+  }
 });
 
 test('@claim:free-exports produces CSV, PDF, print, and JSON handoffs', async ({ page }) => {
@@ -130,14 +148,18 @@ test('@claim:free-exports produces CSV, PDF, print, and JSON handoffs', async ({
   expect(pdf.suggestedFilename()).toMatch(/accountant-handoff\.pdf$/);
   const pdfBytes = await readFile(await pdf.path() as string);
   expect(pdfBytes.subarray(0, 8).toString()).toContain('%PDF-1.4');
+  expect(pdfBytes.toString('latin1')).toContain('ORD-1001');
+  expect(pdfBytes.toString('latin1')).toContain('Source row 2');
 
   const jsonEvent = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export JSON backup' }).click();
   const json = await jsonEvent;
   const backup = JSON.parse(await readFile(await json.path() as string, 'utf8'));
   expect(backup.state.reconciliationName).toBe('Sample payout PO-0822');
+  expect(backup.state.datasets.events.rows[0]).toMatchObject({ order_id: 'ORD-1001', amount: '120.00' });
 
   await page.evaluate(() => { window.print = () => document.documentElement.setAttribute('data-print-called', 'yes'); });
+  await expect(page.locator('td[data-label="Mapped ID"]', { hasText: 'ORD-1001' })).toBeVisible();
   await page.getByRole('button', { name: 'Print report' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-print-called', 'yes');
 });
@@ -147,12 +169,12 @@ test('@claim:offline-reload reloads the completed demo offline in its own contex
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto(`${origin}/demo`);
-  await expect(page.getByRole('heading', { name: 'The bank deposit balances' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'The bank deposit balances' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
   await context.close();
 });
 
@@ -168,17 +190,126 @@ test('@claim:draft-persistence keeps a real draft after refresh', async ({ page 
   await expect(page.getByText('my-order-events.csv', { exact: true })).toBeVisible();
 });
 
-test('@claim:saved-history-license proves price, free scope, and license activation', async ({ page }) => {
+test('@claim:saved-history-license saves and reopens history and reuses a changed mapping', async ({ page }) => {
   await page.route('https://api.sociobot.in/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"valid":true,"reason":"ok"}' }));
   await openDemo(page);
   await page.getByRole('button', { name: 'Start for real' }).click();
+  await uploadSampleFiles(page);
   await expect(page.getByText('Pay US $19 once')).toBeVisible();
   await expect(page.getByText('Reconciliation and every export remain free.')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Buy saved history for US $19' })).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/payout-reconciliation-explainer/checkout');
+  await expect(page.getByRole('link', { name: 'Buy saved history for US $19' })).toHaveAttribute('href', checkout);
   await expect(page.locator('a[href*="dodo"]')).toHaveCount(0);
   await page.getByLabel('Have a license? Paste it here').fill('test-license-token');
   await page.getByRole('button', { name: 'Verify license' }).click();
   await expect(page.getByText('Saved history is active.')).toBeVisible();
+
+  await page.getByLabel('Reconciliation name').fill('August shop payout');
+  await page.locator('#map-events-id').selectOption('event_type');
+  page.once('dialog', (dialog) => dialog.accept('Changed processor columns'));
+  await page.getByRole('button', { name: 'Save mapping preset' }).click();
+  await page.getByRole('button', { name: 'Run reconciliation' }).click();
+  await expect(page.getByRole('heading', { name: 'August shop payout' })).toBeVisible();
+  await page.getByRole('button', { name: 'Save this reconciliation' }).click();
+  await expect(page.getByText('August shop payout', { exact: true }).last()).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Open' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open' }).click();
+  await expect(page.getByRole('heading', { name: 'August shop payout' })).toBeVisible();
+  const stored = await page.evaluate(async () => await new Promise<{ history: number; presets: number; presetId: string }>((resolve, reject) => {
+    const request = indexedDB.open('payout-reconciliation-explainer', 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction(['history', 'presets']);
+      const history = tx.objectStore('history').count();
+      const presets = tx.objectStore('presets').getAll();
+      tx.oncomplete = () => { db.close(); resolve({ history: history.result, presets: presets.result.length, presetId: presets.result[0].value.events.id }); };
+      tx.onerror = () => reject(tx.error);
+    };
+  }));
+  expect(stored).toEqual({ history: 1, presets: 1, presetId: 'event_type' });
+
+  await page.getByRole('button', { name: 'Erase current draft' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Erase current draft' }).click();
+  await uploadSampleFiles(page);
+  await page.getByRole('button', { name: 'Use saved preset' }).click();
+  await expect(page.locator('#map-events-id')).toHaveValue('event_type');
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete' }).click();
+  const historyCount = await page.evaluate(async () => await new Promise<number>((resolve, reject) => {
+    const request = indexedDB.open('payout-reconciliation-explainer', 1);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const count = db.transaction('history').objectStore('history').count();
+      count.onsuccess = () => { db.close(); resolve(count.result); };
+      count.onerror = () => reject(count.error);
+    };
+  }));
+  expect(historyCount).toBe(0);
+});
+
+test('@claim:license-verification-privacy sends only the stored token for a license check', async ({ page }) => {
+  const billingRequests: { url: string; method: string; body: string | null }[] = [];
+  await page.route('https://api.sociobot.in/**', async (route) => {
+    const request = route.request();
+    billingRequests.push({ url: request.url(), method: request.method(), body: request.postData() });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{"valid":true,"reason":"ok"}' });
+  });
+  await openDemo(page);
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await page.locator('#file-events').setInputFiles({
+    name: 'private-events.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('order_id,event_date,amount\nSECRET-CSV-MARKER,2026-08-18,10.00'),
+  });
+  await page.getByLabel('Have a license? Paste it here').fill('fixture-license-token');
+  await page.getByRole('button', { name: 'Verify license' }).click();
+  await expect(page.getByText('Saved history is active.')).toBeVisible();
+  expect(billingRequests).toHaveLength(1);
+  const requestUrl = new URL(billingRequests[0]!.url);
+  expect(requestUrl.pathname).toBe('/api/v1/products/payout-reconciliation-explainer/verify');
+  expect([...requestUrl.searchParams.keys()]).toEqual(['license']);
+  expect(requestUrl.searchParams.get('license')).toBe('fixture-license-token');
+  expect(billingRequests[0]).toMatchObject({ method: 'GET', body: null });
+  expect(JSON.stringify(billingRequests)).not.toContain('SECRET-CSV-MARKER');
+  expect(await page.evaluate(() => localStorage.getItem('sb_license:payout-reconciliation-explainer'))).toBe('fixture-license-token');
+});
+
+test('@claim:hosted-checkout opens the product checkout without embedding payment fields', async ({ page }) => {
+  await page.route(checkout, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Sociobot checkout fixture</title><h1>Hosted checkout</h1>' }));
+  await page.goto('/');
+  await expect(page.locator('input[autocomplete="cc-number"], input[name*="card" i]')).toHaveCount(0);
+  await expect(page.locator('script[src^="http"]')).toHaveCount(0);
+  const requestPromise = page.waitForRequest(checkout);
+  await page.getByRole('link', { name: 'Buy saved history for US $19' }).click();
+  const request = await requestPromise;
+  expect(request.method()).toBe('GET');
+  await expect(page).toHaveURL(checkout);
+  await expect(page).toHaveTitle('Sociobot checkout fixture');
+});
+
+test('@claim:required-columns identifies and recovers from every missing required mapping', async ({ page }) => {
+  await openDemo(page);
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await uploadSampleFiles(page);
+  const required = [
+    ['#map-events-date', 'event_date', 'Event date', 'Order events'],
+    ['#map-events-amount', 'amount', 'Event amount', 'Order events'],
+    ['#map-payout-date', 'payout_date', 'Payout date', 'Processor payout'],
+    ['#map-payout-net', 'net', 'Net payout', 'Processor payout'],
+    ['#map-bank-date', 'deposit_date', 'Deposit date', 'Bank deposits'],
+    ['#map-bank-amount', 'amount', 'Deposit amount', 'Bank deposits'],
+  ] as const;
+  for (const [selector, value, label, source] of required) {
+    await page.locator(selector).selectOption('');
+    await page.getByRole('button', { name: 'Run reconciliation' }).click();
+    await expect(page.getByRole('alert')).toContainText(`Choose the ${label} column for ${source}`);
+    await page.locator(selector).selectOption(value);
+    await page.getByRole('button', { name: 'Run reconciliation' }).click();
+    await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
+    if (selector !== '#map-bank-amount') await page.getByRole('button', { name: 'Edit mapping' }).click();
+  }
 });
 
 test('@claim:erase-scope erases only the real current draft', async ({ page }) => {
@@ -209,11 +340,21 @@ test('@claim:visible-reconciliation calculates the sample and shows its evidence
   await openDemo(page);
   await expect(page.locator('.summary-strip')).toContainText('Expected payout$168.62');
   await expect(page.locator('.summary-strip')).toContainText('Reported payout$168.62');
-  await expect(page.locator('.summary-strip')).toContainText('Bank deposit$168.62');
+  await expect(page.locator('.summary-strip')).toContainText('Bank deposits$168.62');
   await expect(page.locator('.summary-strip')).toContainText('Remaining variance$0.00');
-  await page.getByText('Mapped source evidence').click();
+  await expect(page.getByRole('heading', { name: 'How the totals reconcile' })).toBeVisible();
+  await expect(page.locator('.waterfall')).toContainText('Gross order events');
+  await expect(page.locator('.waterfall')).toContainText('Refunds & reversals');
+  await expect(page.locator('.waterfall')).toContainText('Event fees');
+  await expect(page.locator('.waterfall')).toContainText('Expected processor payout');
   await expect(page.getByText('sample-events.csv · 3 rows')).toBeVisible();
   await expect(page.getByText('sample-bank.csv · 2 rows')).toBeVisible();
+  const row = page.locator('.source-table tbody tr').filter({ hasText: 'ORD-1001' });
+  await expect(row).toContainText('2');
+  await expect(row).toContainText('2026-08-18');
+  await expect(row).toContainText('120.00 USD');
+  await expect(row).toContainText('order_id');
+  await expect(row).toContainText('120.00');
 });
 
 test('@claim:no-integrations exposes no connection or ledger-posting action', async ({ page }) => {
@@ -227,11 +368,14 @@ test('@claim:no-integrations exposes no connection or ledger-posting action', as
 
 test('@claim:build-output creates the static deployment root', async ({ page }) => {
   await openDemo(page);
-  const files = await Promise.all(['index.html', 'demo/index.html', 'privacy/index.html', 'terms/index.html', '404.html', 'sw.js'].map(async (name) => {
+  const files = await Promise.all(['index.html', 'demo/index.html', 'privacy/index.html', 'terms/index.html', '404.html', 'sw.js', 'manifest.webmanifest'].map(async (name) => {
     const value = await readFile(new URL(`../../dist/${name}`, import.meta.url), 'utf8');
     return value.length;
   }));
   expect(files.every((size) => size > 100)).toBe(true);
+  const manifest = JSON.parse(await readFile(new URL('../../dist/manifest.webmanifest', import.meta.url), 'utf8'));
+  expect(manifest).toMatchObject({ display: 'standalone' });
+  expect(manifest.icons).toEqual(expect.arrayContaining([expect.objectContaining({ sizes: '192x192' }), expect.objectContaining({ sizes: '512x512' })]));
 });
 
 test('routes set metadata, focus headings, support Back, and show the designed 404', async ({ page }) => {
