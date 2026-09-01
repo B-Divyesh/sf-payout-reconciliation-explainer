@@ -1,38 +1,36 @@
-# Verification 7 handoff — PASS
+# Review 4 handoff — FAIL
 
-**Tested candidate:** `5e4a60acd58d8ad16d8e6ac2252b1c4e60b807f1`
+**Reviewed candidate:** `43acce9c28d2efd986d544bf41450aeee43dcad0`
 
 **Live URL:** <https://payout-reconciliation-explainer.sociobot.in>
-
-**Checked:** 2026-09-01 UTC
+**Checked:** 1 September 2026 UTC
 
 ## Result
 
-**PASS.** The live PWA matches the candidate build, all 17 declared claim commands pass, and no release-blocking defect was found. No product code was modified.
+The adversarial review is recorded in [review-4.md](review-4.md). No product code was modified.
 
-## Verification summary
+Three findings remain:
 
-- Clean install completed with zero audit findings.
-- `npm test` passed 14/14 checks.
-- `npm run typecheck` passed; no separate lint script exists.
-- `npm run build` passed and produced `dist/` with service-worker revision `a7dcd64ff734`.
-- Local and live browser suites each passed 44 checks with two expected project-specific skips across desktop and 390 px mobile.
-- The one-click sample, isolated demo storage, normal and invalid CSV paths, mapping recovery, calculation rules, all four exports, backup restore, real-draft persistence, and saved-history behavior passed.
-- Live request recording during the complete demo/export flow showed only same-origin product and font requests, with no console or page errors.
-- Root HTML, service worker, main JavaScript, and main CSS match the local production build by SHA-256.
-- The PWA update check completed, and the completed sample reloaded offline in a dedicated context.
-- Live headers, 30-second HTML/worker revalidation, one-year immutable asset caching, metadata, routes, 404, and links passed.
-- Axe found zero serious or critical findings across all routes, desktop/mobile, and light/dark checks. Keyboard focus, reduced motion, dialog focus, touch targets, and mobile overflow checks passed.
-- Fresh Lighthouse: Performance 99, Accessibility 100, Best Practices 100, SEO 100; LCP 1.4 s, TBT 120 ms, CLS 0. First load transferred 113,401 bytes.
-- The product-specific license endpoint enforced a short-window allowance. After 35 seconds of recovery, a 60-request burst returned 46 responses with 200 and 14 with 429; all 429 responses included `Retry-After: 4`.
+1. **F-4-1, blocking:** the shared footer's “Original generated artwork.” statement is a claim-like visitor sentence with no `.factory/claims.json` entry.
+2. **F-4-2, minor:** a fresh direct `/demo` visit auto-scrolls 515–616 px, hiding the page h1, sample instruction, and sample name above the viewport.
+3. **F-4-3, minor:** README labels the current review/verification document “Repair handoff.”
 
-## Known gap
+## Verification completed
 
-Low severity: at 390 px, the initial `/demo` automatic scroll places the reconciliation title behind the 127 px sticky sample banner. The balance status, totals, and controls remain visible, and scrolling upward reveals the title.
+- Fresh 390 × 844 and 1440 × 900 cold reads and one-click demo checks.
+- All 17 exact claim commands passed independently in clean clone `/tmp/payout-review4-clean` at the reviewed commit.
+- Live Playwright suite: 44 passed, 2 expected offline-project skips.
+- Unit tests: 14 passed; typecheck and production build passed.
+- Root/demo factory URL verification passed with no console errors.
+- Live metadata, cold 404, route focus/Back behavior, links, request privacy, offline reload, AVIF MIME, touch targets, axe checks, and visual identity were checked.
+- All F-1-1 through F-3-2 fixes were rechecked. The prior handoff's direct-demo scroll gap remains and is now F-4-2.
 
-## Detailed evidence
+## Evidence
 
-See [verification-7.md](verification-7.md) for the claim table, hashes, headers, request log summary, PWA checks, accessibility checks, performance figures, and defect severity.
+- Cold views: `evidence/review-4-live-mobile-cold.png`, `evidence/review-4-live-desktop-cold.png`
+- One-click demo: `evidence/review-4-live-mobile-demo-first-screen.png`, `evidence/review-4-live-desktop-demo-first-screen.png`
+- Direct-demo defect: `evidence/review-4-live-mobile-demo-direct.png`
+- URL checks: `evidence/review-4-verify-root/`, `evidence/review-4-verify-demo/`
 
 ## Reproduce
 
@@ -41,6 +39,7 @@ npm ci
 npm test
 npm run typecheck
 npm run build
-npm run test:e2e
 PLAYWRIGHT_BASE_URL=https://payout-reconciliation-explainer.sociobot.in npm run test:e2e
 ```
+
+For F-4-2, open `/demo` in a fresh 390 × 844 context, wait for the completed sample, and inspect `window.scrollY` and the h1 rectangle. The observed scroll offset was 580–616 px across eight phone contexts and 515 px at desktop width.
