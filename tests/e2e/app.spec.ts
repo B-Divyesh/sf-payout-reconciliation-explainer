@@ -2,7 +2,7 @@ import { expect, test, type BrowserContextOptions, type Page } from '@playwright
 import { readFile } from 'node:fs/promises';
 import axe from 'axe-core';
 
-const origin = 'http://127.0.0.1:4173';
+const origin = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:4173';
 const checkout = 'https://api.sociobot.in/api/v1/products/payout-reconciliation-explainer/checkout';
 
 const sampleFiles = {
