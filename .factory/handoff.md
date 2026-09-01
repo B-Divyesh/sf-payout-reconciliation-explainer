@@ -1,52 +1,22 @@
-# Final verification handoff — PASS
-
-**Verified candidate:** `0c43af415ba518bd0559bce6707135005938a462`
-
-**Live product:** <https://payout-reconciliation-explainer.sociobot.in>
-**Verification report:** `.factory/verification-4.md`
-
-The independent verifier confirms a **PASS**. The live root HTML and service worker are byte-for-byte the candidate build, so the prior deployment-only stale-artifact gap is closed. All 12 claims, unit tests, typecheck, production build, end-to-end suite, local privacy request log, live offline reload, service-worker update flow, responsive keyboard/axe review, headers/caching checks, and rate-limit check passed. There are no known release-blocking defects.
-
-Run locally with:
-
-```bash
-npm ci
-npm test
-npm run typecheck
-npm run build
-npm run test:e2e
-```
-
-The record below is the preceding repair handoff, retained for repair provenance; its former deployment-status note is superseded by this final verification.
-
-# Repair handoff — work order `payout-reconciliation-explainer-repair-2`
+# Review 2 handoff
 
 ## Outcome
 
-The two release-blocking findings in `.factory/verification-3.md` are repaired without changing the product scope, local-first storage model, PWA class, or successful reconciliation/export behavior.
+Adversarial first-read review 2 is complete at candidate `76dc171a5053a10ebc14542372fda4a3cabc45f4`.
 
-Repair code commit: `52ffc959be8eef682fcc89aac0ec9881dba27de9`.
+Verdict: **FAIL** with eight findings in `.factory/review-2.md`. The live first screen, one-click demo, sandbox isolation, offline reload, routing, metadata, accessibility baseline, visual identity, and local quality gates passed. The blockers are claim accuracy, incomplete tagged claim coverage, unlisted privacy/payment/import claims, and the partly unresolved terminology finding from review 1.
 
-## Repair
+No product code was changed.
 
-- Every visible interactive control across `/`, `/demo`, `/privacy/`, `/terms/`, and the 404 page now measures at least 44×44 CSS px at the required 390×844 mobile viewport. The wordmark, primary navigation, footer links, refund-terms link, and compact buttons now reserve an adequate target area.
-- Manual adjustment errors have their own form-specific state. An invalid adjustment now exposes one `role="alert"`, adjacent to the signed amount, and the amount is marked `aria-invalid` and described by that alert. Mapping/file errors remain in the workspace panel.
-- Added exact Playwright regressions for both findings. The target test measures every visible link, button, editable field, select, textarea, summary, and custom button role on every public route at 390 px.
+## Verification performed
 
-## Verification
-
-From a clean dependency install on 2026-08-30 UTC:
-
-- `npm ci` — passed; 62 packages audited, 0 vulnerabilities.
-- `npm test` — 14/14 unit tests passed.
-- `npm run typecheck` — passed.
-- `npm run build` — passed; `dist/` includes the static routes and service worker revision `7b671128210b`.
-- `npm run test:e2e` — 37 passed, 1 intentional duplicate-project offline skip. This includes desktop, 390×844 mobile, keyboard, axe serious/critical scans, privacy requests, offline reload in its own browser context, and the two new regressions.
-- Every one of the 12 commands listed in `.factory/claims.json` was run independently and passed.
-- `npm audit --omit=dev` and `git diff --check` — passed.
-- `/opt/fleet/lib/verify-url.sh` passed against the local production build for `/` and `/demo`: HTTP 200, zero console errors, one h1, one main, `lang=en`, no missing image alt text, and no unlabeled buttons. Evidence: `.factory/evidence/repair-2-root/verify.json` and `.factory/evidence/repair-2-demo/verify.json`.
-- Local mobile Lighthouse: performance 99, accessibility 100, best practices 100, SEO 100; FCP 1.4 s, LCP 1.8 s, TBT 0 ms, CLS 0. Evidence: `.factory/evidence/repair-2-lighthouse.json`.
-- Final initial assets: JavaScript 52,158 bytes raw / 17.24 KB gzip; CSS 24,306 bytes raw / 5.90 KB gzip.
+- Opened the live root cold in fresh 390 × 844 and 1440 × 900 Chromium contexts.
+- Entered the completed demo in one click; confirmed banner, reset, exit, isolated IndexedDB namespace, untouched seeded real draft, offline reload, same-origin request log, and zero console errors.
+- Ran every `.factory/claims.json` command separately from clean clone `/tmp/payout-review-2-clean-S1UdOk`; all commands exited successfully, but four tagged tests do not cover their complete wording.
+- Ran `npm test`, `npm run typecheck`, `npm run build`, and `npm run test:e2e` from that clone: 14 unit tests passed; 36 browser tests passed; 2 intentional project skips.
+- Ran the factory URL verifier on live `/` and `/demo`; both passed.
+- Checked all public routes, internal links, the checkout response, GitHub source link, route focus/Back behavior, 404 status, headers, AVIF MIME, touch targets, and axe coverage.
+- Confirmed live `index.html` and `sw.js` hashes match the clean candidate build.
 
 ## Re-run
 
@@ -58,8 +28,13 @@ npm run build
 npm run test:e2e
 ```
 
-The product remains a static PWA deployed from `dist/`. Push the repair commits on `main`; the configured static deployment consumes that artifact. No database, infrastructure, DNS, billing, or other service resource was accessed or changed.
+Then run every command in `.factory/claims.json` separately and repeat the live mobile/desktop, demo-isolation, request-log, offline, route, link, and copy checks.
 
-## Known gaps
+## Files changed
 
-The release blockers are covered by regression tests. The repair commits were pushed to `main`, but at 2026-08-30 07:35 UTC the external product URL still served the prior candidate HTML (`ddb0bc38994a918f0e74b0fdea9f82c7181da551040562bab947dc8d5f3b6b3d`) rather than the local repaired build (`2d2085edbd9dd06cf4c20644404a9dbba09cac37a0ea115294f407f6e841ef96`). Static rollout is owned by the factory and has no repository workflow to invoke; it needs to finish before release verification is repeated.
+- `.factory/review-2.md`
+- `.factory/handoff.md`
+
+## Work left
+
+Implement the concrete fixes in F-2-1 through F-2-8, update the claims registry and tagged tests, then conduct the next review from scratch. Deployment, infrastructure, DNS, databases, billing configuration, and unrelated resources were not modified.
