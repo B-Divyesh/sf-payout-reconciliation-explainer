@@ -349,6 +349,9 @@ test('@claim:visible-reconciliation calculates the sample and shows its evidence
   await expect(page.locator('.waterfall')).toContainText('Expected processor payout');
   await expect(page.getByText('sample-events.csv · 3 rows')).toBeVisible();
   await expect(page.getByText('sample-bank.csv · 2 rows')).toBeVisible();
+  await expect(page.getByRole('table')).toHaveCount(3);
+  expect(await page.getByRole('cell').count()).toBeGreaterThan(0);
+  await expect(page.locator('td[data-label="Mapped ID"]', { hasText: 'ORD-1001' })).toBeVisible();
   const row = page.locator('.source-table tbody tr').filter({ hasText: 'ORD-1001' });
   await expect(row).toContainText('2');
   await expect(row).toContainText('2026-08-18');
