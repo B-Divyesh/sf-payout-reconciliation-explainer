@@ -37,20 +37,20 @@ export function mappingRequirements(kind: DatasetKind): { field: keyof ColumnMap
     { field: 'amount', label: 'Event amount', required: true, help: 'Sales positive; refunds negative or identified by type' },
     { field: 'type', label: 'Event type', required: false, help: 'Words like refund or chargeback become deductions' },
     { field: 'fee', label: 'Fee', required: false, help: 'Fees are treated as deductions' },
-    { field: 'payoutRef', label: 'Payout reference', required: false, help: 'Recorded for audit matching' },
+    { field: 'payoutRef', label: 'Payout reference', required: false, help: 'Shown with the original row' },
     { field: 'currency', label: 'Currency column', required: false, help: 'Checked against the selected currency' },
   ];
   if (kind === 'payout') return [
-    { field: 'id', label: 'Payout ID', required: false, help: 'Used to match references' },
+    { field: 'id', label: 'Payout ID', required: false, help: 'Shown with the source row' },
     { field: 'date', label: 'Payout date', required: true, help: 'Used for the audit trail' },
     { field: 'net', label: 'Net payout', required: true, help: 'Amount the processor says it sent' },
-    { field: 'gross', label: 'Gross', required: false, help: 'Included as supporting evidence' },
-    { field: 'refunds', label: 'Refunds', required: false, help: 'Included as supporting evidence' },
-    { field: 'fees', label: 'Fees', required: false, help: 'Included as supporting evidence' },
+    { field: 'gross', label: 'Gross', required: false, help: 'Shown with the original row' },
+    { field: 'refunds', label: 'Refunds', required: false, help: 'Shown with the original row' },
+    { field: 'fees', label: 'Fees', required: false, help: 'Shown with the original row' },
     { field: 'currency', label: 'Currency column', required: false, help: 'Checked against the selected currency' },
   ];
   return [
-    { field: 'reference', label: 'Bank reference', required: false, help: 'Used to compare payout IDs' },
+    { field: 'reference', label: 'Bank reference', required: false, help: 'Shown with the source row' },
     { field: 'date', label: 'Deposit date', required: true, help: 'Original bank date is retained' },
     { field: 'amount', label: 'Deposit amount', required: true, help: 'All imported rows are summed' },
     { field: 'currency', label: 'Currency column', required: false, help: 'Checked against the selected currency' },
