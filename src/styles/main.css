@@ -260,6 +260,7 @@ dialog { max-width: 520px; padding: 28px; border: 1px solid var(--line-strong); 
   .summary-strip { grid-template-columns: 1fr; }.summary-item { border-right: 0; border-bottom: 1px solid var(--line); }.summary-item:last-child { border-bottom: 0; }
   .license-form { flex-direction: column; }
   .source-table, .source-table tbody, .source-table tr, .source-table td { display: block; width: 100%; }
+  .source-table caption { display: block; width: 100%; box-sizing: border-box; }
   .source-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .source-table tr { margin-bottom: 12px; border: 1px solid var(--line-strong); }
   .source-table td { display: grid; grid-template-columns: minmax(92px, .7fr) minmax(0, 1.3fr); gap: 10px; border: 0; border-bottom: 1px solid var(--line); }
