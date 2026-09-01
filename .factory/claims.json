@@ -35,6 +35,13 @@
     "sandbox": "completed /demo without a license; inspect a known source row in CSV, PDF, print DOM, and JSON; intercept the print call"
   },
   {
+    "id": "backup-roundtrip",
+    "claim": "A JSON backup restores the current files, changed mappings, written explanations, and recalculated reconciliation.",
+    "where": "backup controls, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:backup-roundtrip",
+    "sandbox": "fresh real workspace from /demo; create a draft with three CSV files, a changed mapping, and a valid manual explanation; export, erase, import, and assert all restored data and result"
+  },
+  {
     "id": "offline-reload",
     "claim": "The completed demo reloads offline after its first visit.",
     "where": "README, PWA behavior",
@@ -89,6 +96,13 @@
     "where": "demo result, README",
     "test": "npm run test:e2e -- --project=chromium --grep @claim:visible-reconciliation",
     "sandbox": "completed /demo; assert totals and zero variance; inspect sample-events.csv row 2 for ORD-1001, its date, mapped amount, and original values"
+  },
+  {
+    "id": "calculation-rules",
+    "claim": "Mapped rows calculate totals with currency minor units, refund classification, absolute event fees, and signed written explanations.",
+    "where": "reconciliation result, open rules, source evidence, README",
+    "test": "npm run test:e2e -- --project=chromium --grep @claim:calculation-rules",
+    "sandbox": "fresh real workspace from /demo; import fixtures for refund, chargeback, return, reversal, negative events and fees; assert source rows and totals; add an explanation; then assert JPY and BHD precision fixtures"
   },
   {
     "id": "no-integrations",

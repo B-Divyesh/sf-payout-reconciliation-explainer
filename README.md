@@ -12,6 +12,8 @@ Try the completed sample: <https://payout-reconciliation-explainer.sociobot.in/d
 - Keeps sample work separate from real drafts. (`demo-isolation`)
 - Shows source rows and arithmetic in the result. (`visible-reconciliation`)
 - Exports a row-level CSV, accountant PDF, printable report, and JSON backup without a license. (`free-exports`)
+- Restores files, mappings, explanations, and recalculated results from a JSON backup. (`backup-roundtrip`)
+- Applies mapped-row rules for refunds, fees, currencies, and signed explanations. (`calculation-rules`)
 - Keeps the current real draft after refresh. (`draft-persistence`)
 - Reloads the completed sample offline after its first visit. (`offline-reload`)
 - Rejects CSVs without headers, above 10 MB, or above 50,000 rows. (`file-limits`)

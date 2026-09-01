@@ -1,4 +1,4 @@
-# Copy audit — polish round 2
+# Copy audit — polish round 3
 
 Audited 1 September 2026 from the rendered landing page at 390 × 844 and 1440 × 900. Counts treat a currency amount as one word. No sentence exceeds 22 words. No banned marketing word appears.
 
@@ -77,8 +77,8 @@ The headline states the job in nine words. The next sentence names the user. The
 | Your current draft remains after a refresh. | 8 | Pass — `draft-persistence` |
 | The license adds named history and reusable mappings. | 8 | Pass — `saved-history-license` |
 | Back up or remove local data | 6 | Pass |
-| The JSON backup contains your current files, mappings, and explanations. | 10 | Pass — `free-exports` |
-| Export JSON backup / Import JSON backup / Erase current draft | 9 | Pass |
+| The JSON backup restores your current files, mappings, and explanations. | 10 | Pass — `backup-roundtrip` |
+| Export JSON backup / Import JSON backup / Erase current draft | 9 | Pass — `backup-roundtrip`, `erase-scope` |
 
 ## Dialog, footer, and conditional states
 
@@ -107,3 +107,16 @@ The headline states the job in nine words. The next sentence names the user. The
 | Export for an accountant | Accountant report or accountant PDF |
 
 README, Privacy, and Terms were checked separately. Their prose contains no sentence above 22 words. Technical storage terms were replaced with plain explanations. “Merchant of record,” “static PWA,” “configured static artifact,” and “billing contract” no longer appear in current visitor or README copy.
+
+## Completed-result rules
+
+| Copy unit | Words | Result |
+| --- | ---: | --- |
+| The totals below use the mapped rows and any written explanation. | 11 | Pass — `calculation-rules` |
+| Currency precision: USD uses 2 decimal places; calculations use integer minor units. | 11 | Pass — `calculation-rules` |
+| Events rule: positive rows count as orders; negative rows or types containing refund, chargeback, return, or reversal count as refunds. | 19 | Pass — `calculation-rules` |
+| Fee rule: the mapped event-fee values are deducted by absolute value. | 10 | Pass — `calculation-rules` |
+| Scope rule: this result sums all imported event, payout, and bank rows. | 12 | Pass — `calculation-rules` |
+| Manual explanations account for the signed payout-to-bank variance only. | 9 | Pass — `calculation-rules` |
+
+The calculation fixture also covers positive refund-like rows, a negative non-refund row, positive and negative event fees, and zero- and three-decimal currencies. The old component and identifier-match messages were removed because this app does not use them to filter or calculate a reconciliation.

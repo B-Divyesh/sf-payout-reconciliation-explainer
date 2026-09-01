@@ -11,10 +11,52 @@ const sampleFiles = {
   bank: { name: 'bank-deposits.csv', mimeType: 'text/csv', buffer: Buffer.from('deposit_date,reference,amount,currency\n2026-08-23,PO-2000,168.50,USD\n2026-08-24,PO-2000,0.12,USD') },
 } as const;
 
+const roundTripFiles = {
+  events: { name: 'roundtrip-events.csv', mimeType: 'text/csv', buffer: Buffer.from('order_id,event_date,event_type,amount,fee,payout_id,currency\nORD-ROUND,2026-08-18,sale,15.00,0.50,PO-ROUND,USD') },
+  payout: { name: 'roundtrip-payout.csv', mimeType: 'text/csv', buffer: Buffer.from('payout_id,payout_date,net,currency\nPO-ROUND,2026-08-22,12.50,USD') },
+  bank: { name: 'roundtrip-bank.csv', mimeType: 'text/csv', buffer: Buffer.from('deposit_date,reference,amount,currency\n2026-08-23,PO-ROUND,12.38,USD') },
+} as const;
+
+const calculationFiles = {
+  events: { name: 'calculation-events.csv', mimeType: 'text/csv', buffer: Buffer.from('order_id,event_date,event_type,amount,fee,payout_id,currency\nSALE-1,2026-08-01,sale,100.00,2.00,PO-RULES,USD\nREF-1,2026-08-02,refund,25.00,0.00,PO-RULES,USD\nCB-1,2026-08-03,chargeback,-10.00,0.00,PO-RULES,USD\nRETURN-1,2026-08-04,return,5.00,0.00,PO-RULES,USD\nREV-1,2026-08-05,reversal,4.00,0.00,PO-RULES,USD\nNEG-1,2026-08-06,sale,-3.00,0.00,PO-RULES,USD\nFEE-NEG,2026-08-07,sale,20.00,-1.50,PO-RULES,USD') },
+  payout: { name: 'calculation-payout.csv', mimeType: 'text/csv', buffer: Buffer.from('payout_id,payout_date,net,currency\nPO-RULES,2026-08-08,70.00,USD') },
+  bank: { name: 'calculation-bank.csv', mimeType: 'text/csv', buffer: Buffer.from('deposit_date,reference,amount,currency\n2026-08-09,PO-RULES,69.88,USD') },
+} as const;
+
 async function uploadSampleFiles(page: Page): Promise<void> {
   await page.locator('#file-events').setInputFiles(sampleFiles.events);
   await page.locator('#file-payout').setInputFiles(sampleFiles.payout);
   await page.locator('#file-bank').setInputFiles(sampleFiles.bank);
+}
+
+async function uploadFiles(page: Page, files: Record<'events' | 'payout' | 'bank', { name: string; mimeType: string; buffer: Buffer }>): Promise<void> {
+  await page.locator('#file-events').setInputFiles(files.events);
+  await page.locator('#file-payout').setInputFiles(files.payout);
+  await page.locator('#file-bank').setInputFiles(files.bank);
+}
+
+async function eraseCurrentDraft(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Erase current draft' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Erase current draft' }).click();
+  await expect(page.getByRole('heading', { name: 'Add three source files' })).toBeVisible();
+}
+
+async function reconcileCurrencyFixture(page: Page, currency: 'JPY' | 'BHD'): Promise<void> {
+  const decimal = currency === 'JPY' ? '100' : '10.001';
+  const fee = currency === 'JPY' ? '1' : '0.001';
+  const expected = currency === 'JPY' ? '99' : '10.000';
+  const files = {
+    events: { name: `${currency.toLowerCase()}-events.csv`, mimeType: 'text/csv', buffer: Buffer.from(`order_id,event_date,event_type,amount,fee,payout_id,currency\n${currency}-1,2026-08-10,sale,${decimal},${fee},PO-${currency},${currency}`) },
+    payout: { name: `${currency.toLowerCase()}-payout.csv`, mimeType: 'text/csv', buffer: Buffer.from(`payout_id,payout_date,net,currency\nPO-${currency},2026-08-11,${expected},${currency}`) },
+    bank: { name: `${currency.toLowerCase()}-bank.csv`, mimeType: 'text/csv', buffer: Buffer.from(`deposit_date,reference,amount,currency\n2026-08-12,PO-${currency},${expected},${currency}`) },
+  } as const;
+  await uploadFiles(page, files);
+  await page.getByLabel('Reconciliation currency').fill(currency);
+  await page.getByLabel('Reconciliation currency').press('Tab');
+  await page.getByRole('button', { name: 'Run reconciliation' }).click();
+  await expect(page.getByText(`Currency precision: ${currency} uses ${currency === 'JPY' ? '0 decimal places' : '3 decimal places'}; calculations use integer minor units.`)).toBeVisible();
+  await expect(page.locator('.source-table tbody tr').first()).toContainText(`${decimal} ${currency}`);
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
 }
 
 async function openDemo(page: Page): Promise<void> {
@@ -203,6 +245,39 @@ test('@claim:free-exports produces CSV, PDF, print, and JSON handoffs', async ({
   await expect(page.locator('td[data-label="Mapped ID"]', { hasText: 'ORD-1001' })).toBeVisible();
   await page.getByRole('button', { name: 'Print report' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-print-called', 'yes');
+});
+
+test('@claim:backup-roundtrip restores files, changed mappings, explanations, and the reconciliation', async ({ page }) => {
+  await openReadyRealWorkspace(page);
+  await uploadFiles(page, roundTripFiles);
+  await page.getByLabel('Reconciliation name').fill('Round-trip payout');
+  await page.locator('#map-events-id').selectOption('event_type');
+  await page.getByRole('button', { name: 'Run reconciliation' }).click();
+  await expect(page.locator('.summary-strip')).toContainText('Expected payout$14.50');
+  await expect(page.locator('.summary-strip')).toContainText('Remaining variance-$0.12');
+  await page.getByLabel(/Signed amount/).fill('-0.12');
+  await page.getByLabel('Evidence note').fill('Round-trip timing evidence');
+  await page.getByRole('button', { name: 'Add explanation' }).click();
+  await expect(page.getByRole('heading', { name: 'The variance is explained' })).toBeVisible();
+
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export JSON backup' }).first().click();
+  const download = await downloadEvent;
+  const backupPath = await download.path();
+  expect(backupPath).toBeTruthy();
+  const backup = JSON.parse(await readFile(backupPath as string, 'utf8'));
+  expect(backup.state.datasets.events).toMatchObject({ fileName: 'roundtrip-events.csv' });
+  expect(backup.state.mappings.events).toMatchObject({ id: 'event_type' });
+  expect(backup.state.adjustments).toEqual(expect.arrayContaining([expect.objectContaining({ amountMinor: -12, note: 'Round-trip timing evidence' })]));
+
+  await eraseCurrentDraft(page);
+  await page.locator('#backup-file').setInputFiles(backupPath as string);
+  await expect(page.getByRole('heading', { name: 'Round-trip payout' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The variance is explained' })).toBeVisible();
+  await expect(page.getByText('roundtrip-events.csv · 1 rows')).toBeVisible();
+  await expect(page.locator('td[data-label="Mapped ID"]').first()).toHaveText('sale');
+  await expect(page.getByText('Round-trip timing evidence')).toBeVisible();
+  await expect(page.locator('.summary-strip')).toContainText('Remaining variance$0.00');
 });
 
 test('@claim:offline-reload reloads the completed demo offline in its own context', async ({ browser }, testInfo) => {
@@ -399,6 +474,43 @@ test('@claim:visible-reconciliation calculates the sample and shows its evidence
   await expect(row).toContainText('120.00 USD');
   await expect(row).toContainText('order_id');
   await expect(row).toContainText('120.00');
+});
+
+test('@claim:calculation-rules applies mapped rows, minor-unit currencies, refunds, fees, and written explanations', async ({ page }) => {
+  await openReadyRealWorkspace(page);
+  await uploadFiles(page, calculationFiles);
+  await page.getByRole('button', { name: 'Run reconciliation' }).click();
+  await expect(page.locator('.summary-strip')).toContainText('Expected payout$69.50');
+  await expect(page.locator('.summary-strip')).toContainText('Reported payout$70.00');
+  await expect(page.locator('.summary-strip')).toContainText('Bank deposits$69.88');
+  await expect(page.locator('.summary-strip')).toContainText('Remaining variance-$0.12');
+  await expect(page.getByText('The totals below use the mapped rows and any written explanation.')).toBeVisible();
+  await expect(page.getByText('Currency precision: USD uses 2 decimal places; calculations use integer minor units.')).toBeVisible();
+  await expect(page.getByText('Events rule: positive rows count as orders; negative rows or types containing refund, chargeback, return, or reversal count as refunds.')).toBeVisible();
+  await expect(page.getByText('Fee rule: the mapped event-fee values are deducted by absolute value.')).toBeVisible();
+  await expect(page.getByText('Scope rule: this result sums all 7 imported event, 1 payout, and 1 bank rows.')).toBeVisible();
+  const eventBody = page.locator('.source-group').filter({ has: page.getByRole('heading', { name: 'Order events' }) }).locator('tbody');
+  const eventRows = eventBody.locator('tr');
+  await expect(eventRows).toHaveCount(7);
+  await expect(eventBody).toContainText('refund');
+  await expect(eventBody).toContainText('chargeback');
+  await expect(eventBody).toContainText('return');
+  await expect(eventBody).toContainText('reversal');
+  await expect(eventBody).toContainText('-1.50');
+  await expect(page.getByText('calculation-payout.csv · 1 rows')).toBeVisible();
+  await expect(page.getByText('calculation-bank.csv · 1 rows')).toBeVisible();
+
+  await page.getByLabel(/Signed amount/).fill('-0.12');
+  await page.getByLabel('Evidence note').fill('Bank timing rule evidence');
+  await page.getByRole('button', { name: 'Add explanation' }).click();
+  await expect(page.getByRole('heading', { name: 'The variance is explained' })).toBeVisible();
+  await expect(page.locator('.summary-strip')).toContainText('Remaining variance$0.00');
+  await expect(page.getByText('Manual explanations: 1 item accounts for the signed payout-to-bank variance only.')).toBeVisible();
+
+  await eraseCurrentDraft(page);
+  await reconcileCurrencyFixture(page, 'JPY');
+  await eraseCurrentDraft(page);
+  await reconcileCurrencyFixture(page, 'BHD');
 });
 
 test('@claim:no-integrations exposes no connection or ledger-posting action', async ({ page }) => {

@@ -29,8 +29,42 @@ let updateRequested = false;
 let isDemoMode = location.pathname.startsWith('/demo') || new URLSearchParams(location.search).get('demo') === '1';
 let eraseReturnFocus: HTMLElement | null = null;
 
+type BackupDocument = { product?: string; state?: unknown };
+
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
+}
+
+function restoreBackup(document: BackupDocument): AppState {
+  if (document.product !== 'payout-reconciliation-explainer' || !document.state || typeof document.state !== 'object') {
+    throw new Error('This is not a compatible Payout Explainer backup.');
+  }
+  const restored = structuredClone(document.state) as Partial<AppState>;
+  if (restored.version !== 1 || !restored.datasets || typeof restored.datasets !== 'object'
+    || !restored.mappings || typeof restored.mappings !== 'object' || !Array.isArray(restored.adjustments)
+    || typeof restored.currency !== 'string' || typeof restored.reconciliationName !== 'string') {
+    throw new Error('This backup is missing reconciliation files, mappings, or explanations.');
+  }
+  for (const dataset of Object.values(restored.datasets)) {
+    if (!dataset || !Array.isArray(dataset.headers) || !Array.isArray(dataset.rows) || typeof dataset.fileName !== 'string') {
+      throw new Error('This backup has an invalid CSV dataset.');
+    }
+  }
+  const next: AppState = {
+    version: 1,
+    datasets: restored.datasets,
+    mappings: restored.mappings,
+    mappingConfirmed: false,
+    currency: restored.currency,
+    adjustments: restored.adjustments,
+    reconciliationName: restored.reconciliationName,
+    updatedAt: new Date().toISOString(),
+  };
+  if (kinds.every((kind) => next.datasets[kind]) && kinds.every((kind) => next.mappings[kind])) {
+    next.result = reconcile(next.datasets, next.mappings, next.currency, next.adjustments);
+    next.mappingConfirmed = true;
+  }
+  return next;
 }
 
 function header(): string {
@@ -132,7 +166,7 @@ function renderResults(): string {
   const money = (minor: number) => formatMoney(minor, result.currency, result.decimals);
   const status = statusCopy();
   const maximum = Math.max(...result.waterfall.flatMap((row) => [Math.abs(row.runningMinor), Math.abs(row.amountMinor)]), 1);
-  return `<section class="panel results-panel" aria-labelledby="results-title"><div class="panel-head"><div><p class="eyebrow">Steps 03–04 · Explain and hand off</p><h2 id="results-title">${escapeHtml(state.reconciliationName)}</h2><p>Every figure below traces back to a mapped field or your written explanation.</p></div><button class="button quiet" type="button" data-action="edit-mapping">Edit mapping</button></div>
+  return `<section class="panel results-panel" aria-labelledby="results-title"><div class="panel-head"><div><p class="eyebrow">Steps 03–04 · Explain and hand off</p><h2 id="results-title">${escapeHtml(state.reconciliationName)}</h2><p>The totals below use the mapped rows and any written explanation.</p></div><button class="button quiet" type="button" data-action="edit-mapping">Edit mapping</button></div>
     <div class="result-banner ${result.status}" role="status"><span class="result-symbol" aria-hidden="true">${status.symbol}</span><div><h3>${status.title}</h3><p>${status.text}</p></div><div class="score"><strong>${result.explainedPercent.toFixed(1)}%</strong><span>bank variance explained</span></div></div>
     <div class="summary-strip" aria-label="Reconciliation totals"><div class="summary-item"><span>Expected payout</span><strong>${money(result.expectedPayoutMinor)}</strong></div><div class="summary-item"><span>Reported payout</span><strong>${money(result.payoutNetMinor)}</strong></div><div class="summary-item"><span>Bank deposits</span><strong>${money(result.bankMinor)}</strong></div><div class="summary-item"><span>Remaining variance</span><strong>${money(result.remainingVarianceMinor)}</strong></div></div>
     <div><p class="eyebrow">Arithmetic waterfall</p><h3>How the totals reconcile</h3><p class="muted small" id="chart-description">Text alternative: ${money(result.ordersMinor)} of positive order events, less ${money(result.refundsMinor)} refunds and ${money(result.eventFeesMinor)} fees, gives ${money(result.expectedPayoutMinor)} expected. The processor payout reports ${money(result.payoutNetMinor)}. Bank deposits total ${money(result.bankMinor)}.</p>
@@ -154,7 +188,7 @@ function renderPaid(): string {
     ${license.unlocked ? `<p class="locked-note"><strong>Saved history is active.</strong> ${escapeHtml(license.message)}</p><div class="action-row"><button class="button" type="button" data-action="save-history" ${state.result ? '' : 'disabled'}>Save this reconciliation</button><button class="button quiet" type="button" data-action="remove-license">Remove license</button></div>`
       : `<div class="action-row"><a class="button" href="${checkoutUrl}">Buy saved history for US $19</a></div><p class="small muted">One-time purchase. Payment opens on Sociobot’s hosted checkout. <a class="inline-link-target" href="/terms/">Read purchase terms</a>.</p>${license.checking || license.message ? `<div class="locked-note">${license.checking ? '<strong>Checking for a license…</strong>' : ''} ${escapeHtml(license.message)}</div>` : ''}<form id="license-form"><div class="field"><label for="license-token">Have a license? Paste it here</label><div class="license-form"><input id="license-token" type="text" autocomplete="off" required aria-describedby="license-help"><button class="button secondary" type="submit">Verify license</button></div><span class="field-help" id="license-help">Stored in this browser. Sent to Sociobot only for license checks.</span></div></form>`}</div>
     <div><h3>Saved reconciliations</h3>${license.unlocked ? (historyItems.length ? `<ul class="history-list">${historyItems.map((item) => `<li><p><strong>${escapeHtml(item.name)}</strong><br><span class="small muted">${new Date(item.savedAt).toLocaleString()}</span></p><span><button class="button quiet small-button" data-action="restore-history" data-id="${item.id}">Open</button><button class="button quiet small-button" data-action="delete-history" data-id="${item.id}">Delete</button></span></li>`).join('')}</ul>` : '<p class="muted">No saved reconciliations yet. Run one, then save it here.</p>') : '<p class="muted">Your current draft remains after a refresh. The license adds named history and reusable mappings.</p>'}</div></div>
-    <div class="data-tools"><h3>Back up or remove local data</h3><p class="small muted">The JSON backup contains your current files, mappings, and explanations.</p><div class="action-row"><button class="button secondary" type="button" data-action="export-backup">Export JSON backup</button><label class="button quiet" for="backup-file">Import JSON backup</label><input class="file-input" id="backup-file" type="file" accept="application/json,.json"><button class="button danger" type="button" data-action="erase">Erase current draft</button></div></div>
+    <div class="data-tools"><h3>Back up or remove local data</h3><p class="small muted">The JSON backup restores your current files, mappings, and explanations.</p><div class="action-row"><button class="button secondary" type="button" data-action="export-backup">Export JSON backup</button><label class="button quiet" for="backup-file">Import JSON backup</label><input class="file-input" id="backup-file" type="file" accept="application/json,.json"><button class="button danger" type="button" data-action="erase">Erase current draft</button></div></div>
   </section>`;
 }
 
@@ -339,9 +373,7 @@ root.addEventListener('change', (event) => {
   if (input.id === 'reconciliation-name') { state.reconciliationName = input.value.trim() || 'Untitled reconciliation'; setStateChanged(); return; }
   if (input.id === 'backup-file' && input instanceof HTMLInputElement && input.files?.[0]) {
     void input.files[0].text().then((text) => {
-      const parsed = JSON.parse(text) as { product?: string; state?: AppState };
-      if (parsed.product !== 'payout-reconciliation-explainer' || parsed.state?.version !== 1) throw new Error('This is not a compatible Payout Explainer backup.');
-      state = parsed.state; setStateChanged('JSON backup imported.'); renderApp();
+      state = restoreBackup(JSON.parse(text) as BackupDocument); setStateChanged('JSON backup imported.'); renderApp();
     }).catch((error) => { workspaceError = (error as Error).message; renderApp(); });
   }
 });
