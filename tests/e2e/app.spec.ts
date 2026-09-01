@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type BrowserContextOptions, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import axe from 'axe-core';
 
@@ -21,6 +21,23 @@ async function openDemo(page: Page): Promise<void> {
   await page.goto('/demo');
   await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
+}
+
+function isolatedContextOptions(projectName: string): BrowserContextOptions {
+  return projectName === 'mobile'
+    ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }
+    : { viewport: { width: 1280, height: 720 } };
+}
+
+async function openReadyRealWorkspace(page: Page): Promise<void> {
+  await page.goto(`${origin}/demo`);
+  await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await expect(page).toHaveURL(`${origin}/`);
+  await expect(page.getByText('Demo — sample data, nothing is saved')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Add three source files' })).toBeVisible();
+  await expect(page.locator('input[type="file"][data-file-kind]')).toHaveCount(3);
 }
 
 async function putRealRecords(page: Page): Promise<void> {
@@ -117,18 +134,42 @@ test('@claim:local-privacy keeps the complete demo flow same-origin', async ({ p
   await expect(page.getByRole('link', { name: /sign in|create account/i })).toHaveCount(0);
 });
 
-test('@claim:file-limits rejects oversized, headerless, and over-row-limit CSVs', async ({ page }) => {
-  await openDemo(page);
-  await page.getByRole('button', { name: 'Start for real' }).click();
-  for (const kind of ['events', 'payout', 'bank']) {
-    const input = page.locator(`#file-${kind}`);
-    await input.setInputFiles({ name: `${kind}-oversized.csv`, mimeType: 'text/csv', buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 65) });
-    await expect(page.getByRole('alert')).toContainText('larger than 10 MB');
-    await input.setInputFiles({ name: `${kind}-headerless.csv`, mimeType: 'text/csv', buffer: Buffer.from('') });
-    await expect(page.getByRole('alert')).toContainText(/header|empty/i);
-    const tooManyRows = `date,amount\n${'2026-08-01,1\n'.repeat(50_001)}`;
-    await input.setInputFiles({ name: `${kind}-too-many.csv`, mimeType: 'text/csv', buffer: Buffer.from(tooManyRows) });
-    await expect(page.getByRole('alert')).toContainText('more than 50,000 rows');
+test('@claim:file-limits rejects oversized, headerless, and over-row-limit CSVs', async ({ browser }, testInfo) => {
+  const cases = [
+    {
+      label: 'file larger than 10 MB',
+      kind: 'events',
+      file: { name: 'events-oversized.csv', mimeType: 'text/csv', buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 65) },
+      error: 'larger than 10 MB',
+    },
+    {
+      label: 'file without a header',
+      kind: 'payout',
+      file: { name: 'payout-headerless.csv', mimeType: 'text/csv', buffer: Buffer.from('') },
+      error: /header|empty/i,
+    },
+    {
+      label: 'file with 50,001 data rows',
+      kind: 'bank',
+      file: { name: 'bank-too-many.csv', mimeType: 'text/csv', buffer: Buffer.from(`a,b\n${'1,\n'.repeat(50_001)}`) },
+      error: 'more than 50,000 rows',
+    },
+  ] as const;
+
+  for (const limitCase of cases) {
+    await test.step(limitCase.label, async () => {
+      const context = await browser.newContext(isolatedContextOptions(testInfo.project.name));
+      try {
+        const isolatedPage = await context.newPage();
+        await openReadyRealWorkspace(isolatedPage);
+        const input = isolatedPage.locator(`#file-${limitCase.kind}`);
+        await expect(input).toBeAttached();
+        await input.setInputFiles(limitCase.file);
+        await expect(isolatedPage.getByRole('alert')).toContainText(limitCase.error);
+      } finally {
+        await context.close();
+      }
+    });
   }
 });
 

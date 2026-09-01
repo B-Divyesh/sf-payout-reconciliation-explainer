@@ -25,7 +25,7 @@
     "claim": "Each CSV must have headers, no more than 50,000 rows, and a size no greater than 10 MB.",
     "where": "file inputs, README",
     "test": "npm run test:e2e -- --project=chromium --grep @claim:file-limits",
-    "sandbox": "leave /demo for real mode; submit fixtures over each limit and assert a specific rejection"
+    "sandbox": "for each limit, open a dedicated fresh browser context; await the ready real workspace; submit one exact boundary fixture and assert its specific rejection"
   },
   {
     "id": "free-exports",
