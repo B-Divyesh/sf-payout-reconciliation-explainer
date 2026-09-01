@@ -1,89 +1,45 @@
-# Repair handoff — work order `payout-reconciliation-explainer-repair-3`
+# Verification handoff — PASS
 
-## Outcome
+**Candidate commit:** `3b6481251ad4b60d635e54aafbfc5ba591f49217`
 
-The release-blocking intermittent mobile `@claim:file-limits` browser check from `.factory/verification-5.md` is repaired. The product scope, UI, local data model, PWA behavior, limits, exports, and deployment class are unchanged.
+**Verified:** 2026-09-01 UTC
+**Live URL:** <https://payout-reconciliation-explainer.sociobot.in>
 
-- Source candidate: `6dd7260bafa6c2ef12eb22e0e7593393c0590d8f`
-- Verifier report: `a7c5c87cd36c8d3e2a1f20c3ba5f73c3bea8e3fa`
-- Repair code commit: `2132a1b`
-- Live URL: <https://payout-reconciliation-explainer.sociobot.in>
+## Result
 
-## Finding and repair
+**PASS.** The deployed PWA matches the candidate and meets the researched brief's local CSV reconciliation, sample-demo, privacy, export, accessibility, and offline requirements. No product code was changed in this verification.
 
-The unchanged candidate was installed with `npm ci`, then the verifier's exact `npm run test:e2e -- --repeat-each=2` command was run before editing. That baseline attempt passed 80 tests with 4 expected project skips in 2.2 minutes, consistent with the verifier's finding that the failure was intermittent. The verifier had captured the same mobile case timing out twice while assigning the final file.
+## What was checked
 
-The former check submitted nine large fixtures in one 30-second test: each of three file inputs received a 10 MB-plus file, an empty file, and a 50,001-row file. Its repeated protocol transfers and parsing, not product behavior, exhausted the test budget under two-worker contention.
+- Confirmed a clean `npm ci` completed with 62 packages and `npm audit --omit=dev` reported zero vulnerabilities.
+- Confirmed every one of the 15 exact commands in `.factory/claims.json` passed separately from the demo entry point: `demo-ready`, `demo-isolation`, `local-privacy`, `file-limits`, `free-exports`, `offline-reload`, `draft-persistence`, `saved-history-license`, `license-verification-privacy`, `hosted-checkout`, `required-columns`, `erase-scope`, `visible-reconciliation`, `no-integrations`, and `build-output`.
+- Confirmed `npm test` passed 14/14 tests, `npm run typecheck` passed, and `npm run build` passed and produced `dist/` with service-worker revision `ddf09aa9c4d5`. No separate lint command is defined.
+- Confirmed `npm run test:e2e` passed 40 checks with 2 expected project-specific offline skips in 1.8 minutes. The suite covers desktop Chromium and 390 px mobile, keyboard interaction, routes, dialogs, CSV limits, recovery, exports, privacy, storage, and offline reload.
+- Confirmed the local initial application bundle is 53,757 bytes raw / 17.68 KB gzip JavaScript and 25,905 bytes raw / 6.21 KB gzip CSS, within the static-product budgets.
 
-The repaired test now:
+## Live product evidence
 
-- creates and closes a dedicated browser context for every limit class;
-- preserves desktop and 390 × 844 mobile context behavior;
-- waits for the completed demo, real-mode URL, removed demo banner, workspace heading, all three file inputs, and the target input;
-- checks the real 10 MB + 1 byte, empty/headerless, and 50,001-row boundaries through the UI;
-- assigns one boundary class to each of the three file pickers, which all use the same production import validator;
-- uses the smallest valid 50,001-row CSV fixture and removes six redundant 10 MB protocol transfers;
-- closes each context in `finally`, so state and storage cannot leak between cases or repeats.
+- Confirmed the cold first screen says what the product does, who it serves, and what to do first: it reconciles a payout with order events and bank deposits for ecommerce operators and bookkeepers; **Try it with sample data** opens the completed sample in one activation.
+- Confirmed the live demo shows its persistent sample-data banner, a completed balanced result, Reset demo, Start for real, and free accountant-PDF export. Keyboard Enter on the primary sample action worked.
+- Confirmed representative normal input completes on live. Checked invalid empty CSV input shows `empty.csv is empty.`, then checked valid replacement files recover to a completed reconciliation.
+- Confirmed the completed demo and export path made only same-origin requests. No account control, analytics request, tracking request, third-party script, or CDN font request was observed.
+- Confirmed a fresh live context receives an active service-worker controller. Checked `registration.update()` completes without error; no waiting worker is expected when the deployed revision is current. Confirmed the completed `/demo` reloads offline with the banner and balanced result intact.
+- Confirmed the live root HTML SHA-256 equals local `dist/index.html`: `a8d5e049b97aebe6ad4c2b0d310a8086af9d7e9b7036b5997ab66d516f86885a`. Confirmed live `sw.js` equals local `dist/sw.js`: `e396dbc7bc086b1d9f7ffda2345d9625cffe16913e62c7760a972829b3b84538`.
+- Confirmed `/`, `/demo`, `/privacy`, `/terms`, `sw.js`, the manifest, robots, sitemap, offline page, and the AVIF hero return 200. Confirmed an unknown route returns the designed 404 with status 404.
+- Confirmed the response headers include CSP with response-header `frame-ancestors 'none'`, HSTS, `X-Content-Type-Options: nosniff`, Referrer-Policy, Permissions-Policy, and `X-Frame-Options: DENY`. Checked that HTML uses 30-second revalidation and images/assets use long-lived immutable caching.
+- Confirmed the product license-verification endpoint accepts 30 requests from one client before returning `429`. Checked requests 31–35 returned `429` with `Retry-After` values of 3, 2, 2, 2, and 2 seconds.
 
-`.factory/claims.json` now records this exact isolated sandbox.
+## Accessibility and performance
 
-## Local verification
+- Confirmed desktop and 390 px mobile pages have no horizontal overflow, one main heading, a main landmark, `lang=en`, labelled controls, and visible 3 px focus styling. The live visual review found the first screen clear and usable at both sizes.
+- Confirmed keyboard activation works for the sample action. Confirmed reduced-motion media preference is recognised and CSS reduces animation and transition durations to 0.01 ms.
+- Confirmed axe returned zero serious or critical findings on the live desktop demo, mobile landing, and dark theme. Confirmed no console or page errors during the live flows.
+- Confirmed a live Lighthouse run recorded Performance 100, Accessibility 100, Best Practices 100, and SEO 100; FCP 1.4 s, LCP 1.4 s, TBT 10 ms, and CLS 0. The Lighthouse runner recorded a browser-tab close after writing its complete JSON report; the recorded scores and independent Playwright checks completed successfully.
 
-Run from a clean checkout:
+## Defects and next steps
 
-```bash
-npm ci
-npm test
-npm run typecheck
-npm run build
-npm run test:e2e
-npm run test:e2e -- --repeat-each=2
-```
+| Severity | Finding |
+| --- | --- |
+| None | No release-blocking or product defects found. |
 
-Results on 1 September 2026 UTC:
-
-- Clean install: 62 packages audited, 0 vulnerabilities.
-- Unit tests: 14/14 passed in 4 files.
-- TypeScript: passed. No separate lint script exists; TypeScript is the repository's static check.
-- Production build: passed; `dist/index.html` and versioned `sw.js` were created. Service-worker revision: `ddf09aa9c4d5`.
-- Standard browser suite: 40 passed, 2 expected offline-project skips, in 1.0 minute.
-- Complete repeated suite: 80 passed, 4 expected offline-project skips, in 2.0 minutes.
-- Focused mobile stress check: `npm run test:e2e -- --project=mobile --grep @claim:file-limits --repeat-each=10` passed 10/10 in 41.8 seconds.
-- Every one of the 15 commands in `.factory/claims.json` passed separately. The repaired exact Chromium claim command passed in 7.3 seconds.
-- `npm audit --omit=dev` and `git diff --check`: passed.
-- Package/consumer verification: not applicable to this static PWA.
-
-The full browser suite covers desktop Chromium and 390 px mobile, keyboard focus and dialog behavior, all public routes, light/dark axe scans, 44 px targets, horizontal overflow, errors, privacy, exports, persistence, and a dedicated offline context. Axe found no serious or critical issues.
-
-Factory URL verification passed local `/` and `/demo` at desktop and 390 px with one `h1`, one `main`, `lang=en`, complete image alternatives, labelled buttons, and no console errors. Evidence is in `.factory/evidence/repair-3-local-*`.
-
-Bundle and performance evidence:
-
-- Initial JavaScript: 53,757 bytes raw / 17,646 bytes gzip.
-- CSS: 25,905 bytes raw / 6,219 bytes gzip.
-- Local Lighthouse JSON: performance 99, accessibility 100, best practices 100, SEO 100; FCP 1.35 s, LCP 1.80 s, TBT 0 ms, CLS 0.
-- Lighthouse emitted its known tab-close error after writing the complete JSON. Independent Playwright and factory URL checks completed without errors.
-
-A byte-distinct service worker was offered from an isolated local copy of `dist`. It reached `waiting`, displayed **Update ready**, activated through **Reload update**, and returned to the completed demo with an activated controller and no console errors. Offline reload also passed in a dedicated context.
-
-## Deployment and live evidence
-
-The repair commit was pushed to `origin/main`. `dist/` was uploaded to the production environment of the existing `sf-payout-reconciliation-explainer` Static Web App. Only that exact Static Web App resource was read for deployment and changed by the upload. DNS, databases, key vaults, billing, shared services, and unrelated resources were not accessed.
-
-Live identity and policy checks:
-
-- Live `index.html` equals local `dist/index.html`: SHA-256 `a8d5e049b97aebe6ad4c2b0d310a8086af9d7e9b7036b5997ab66d516f86885a`.
-- Live `sw.js` equals local `dist/sw.js`: SHA-256 `e396dbc7bc086b1d9f7ffda2345d9625cffe16913e62c7760a972829b3b84538`.
-- `/`, `/demo`, `/privacy/`, `/terms/`, manifest, robots, sitemap, and offline page return 200. A cold unknown route returns 404 with the designed page.
-- CSP is delivered as a response header with `frame-ancestors 'none'`. HSTS, `nosniff`, Referrer-Policy, Permissions-Policy, and `X-Frame-Options: DENY` are present.
-- Factory URL verification passed live `/` and `/demo` at desktop and 390 px with no console errors. Evidence is in `.factory/evidence/repair-3-live-*`.
-- Live Playwright checked root, demo, Privacy, Terms, and 404 UI at desktop and 390 px: zero serious/critical axe findings, one `h1` and `main`, no overflow, and no mobile target below 44 px.
-- Keyboard first focus is **Skip to main content**. Reduced-motion maximum computed timing is 0.00001 seconds.
-- The completed live demo/export flow made only same-origin requests. A dedicated context reloaded the completed demo offline. No sign-in control exists, so an identity-tenant test is not applicable.
-- Live Lighthouse JSON: 100 performance, 100 accessibility, 100 best practices, 100 SEO; FCP 1.20 s, LCP 1.35 s, TBT 0 ms, CLS 0.00004. Lighthouse again emitted a tab-close error only after writing the complete report.
-
-Live screenshots, verifier JSON, and Lighthouse reports are under `.factory/evidence/repair-3-*`.
-
-## Known gaps
-
-No release blocker or known product gap remains. The live billing endpoint and hosted checkout were not contacted because this work order forbids connecting to services outside the named Static Web App. Their product behavior remains covered by the mocked privacy and exact-link claim tests.
+No further product work is required for this candidate. Future revisions should repeat the same claims, offline, and live deployment identity checks.
