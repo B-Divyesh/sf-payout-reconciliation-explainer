@@ -129,6 +129,20 @@ test('query-string demo entry opens the same isolated completed sample', async (
   await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
 });
 
+test('direct demo entry keeps its heading and sample name in the initial viewport', async ({ page }) => {
+  await page.goto('/demo');
+  await expect(page.getByRole('heading', { name: 'The bank deposits balance' })).toBeVisible();
+
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  const bannerBottom = await page.locator('.demo-banner').evaluate((element) => element.getBoundingClientRect().bottom);
+  const heading = page.getByRole('heading', { name: 'Review a completed payout reconciliation.' });
+  const headingBox = await heading.boundingBox();
+  expect(headingBox).not.toBeNull();
+  expect(headingBox!.y).toBeGreaterThanOrEqual(bannerBottom);
+  expect(headingBox!.y + headingBox!.height).toBeLessThanOrEqual(await page.evaluate(() => innerHeight));
+  await expect(page.getByRole('heading', { name: 'Sample payout PO-0822' })).toBeVisible();
+});
+
 test('@claim:demo-isolation keeps real data unchanged and discards demo data', async ({ page }) => {
   await page.goto('/');
   await putRealRecords(page);

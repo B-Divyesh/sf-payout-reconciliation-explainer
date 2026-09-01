@@ -1,1 +1,1 @@
-Reconcile payout CSVs against order events and bank deposits locally.
+Reconcile one payout against order events and bank deposits in your browser.

@@ -77,5 +77,5 @@ Purchase and license checks use product-specific Sociobot URLs. The app contains
 
 - [Demo sandbox](.factory/demo.md)
 - [Visual system](.factory/design.md)
-- [Repair handoff](.factory/handoff.md)
+- [Latest handoff](.factory/handoff.md)
 - [MIT license](LICENSE)

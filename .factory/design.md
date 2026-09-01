@@ -70,6 +70,6 @@ Primary actions use teal fill; quiet actions are ruled text buttons; destructive
 
 **Negative list:** no text, no numbers, no watermark, no logos, no brands, no people, no hands, no coins, no credit cards, no laptop, no photorealistic banking UI, no gradients, no neon, no 3D chrome, no clutter.
 
-**Generator:** Azure OpenAI image generation via factory `gen-image.sh`, deployment `factory-image`. Generated 2026-08-28. The output is original to this product and is disclosed in the footer. Candidate source and its exact prompt are retained in `assets/src/`.
+**Generator:** Azure OpenAI image generation via factory `gen-image.sh`, deployment `factory-image`. Generated 2026-08-28. Candidate source and its exact prompt are retained in `assets/src/`; visitor-facing provenance claims are intentionally omitted.
 
 The polish round kept the original balance-field direction. It added a ruled amber demo strip, a broken-balance 404 composition, and responsive route navigation using the same tokens and geometry.

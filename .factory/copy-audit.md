@@ -92,7 +92,6 @@ The headline states the job in nine words. The next sentence names the user. The
 | Run one, then save it here. | 6 | Pass |
 | Saved history is active. | 4 | Pass |
 | Explain one payout from local CSV files. | 7 | Pass |
-| Original generated artwork. | 3 | Pass |
 | Version 1.1 · Built by Param Factory. | 6 | Pass |
 
 ## Terminology

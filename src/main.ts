@@ -76,7 +76,7 @@ function header(): string {
 }
 
 function footer(): string {
-  return `<footer class="site-footer"><div class="container footer-inner"><p>Explain one payout from local CSV files. Original generated artwork. Version 1.1 · Built by Param Factory.</p><nav class="footer-links" aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-payout-reconciliation-explainer">Source on GitHub <span aria-hidden="true">↗</span></a></nav></div></footer>`;
+  return `<footer class="site-footer"><div class="container footer-inner"><p>Explain one payout from local CSV files. Version 1.1 · Built by Param Factory.</p><nav class="footer-links" aria-label="Footer"><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-payout-reconciliation-explainer">Source on GitHub <span aria-hidden="true">↗</span></a></nav></div></footer>`;
 }
 
 function renderLegal(kind: 'privacy' | 'terms'): void {
@@ -238,7 +238,7 @@ async function addFile(kind: DatasetKind, file: File): Promise<void> {
   renderApp();
 }
 
-function loadSample(complete = false): void {
+function loadSample(complete = false, moveToResult = true): void {
   const sample: Record<DatasetKind, string> = {
     events: `order_id,event_date,event_type,amount,fee,payout_id,currency\nORD-1001,2026-08-18,sale,120.00,3.78,PO-0822,USD\nORD-1002,2026-08-19,sale,80.00,2.60,PO-0822,USD\nREF-1001,2026-08-20,refund,-25.00,0.00,PO-0822,USD`,
     payout: `payout_id,payout_date,gross,refunds,fees,net,currency\nPO-0822,2026-08-22,200.00,25.00,6.38,168.62,USD`,
@@ -259,7 +259,7 @@ function loadSample(complete = false): void {
   }
   setStateChanged(complete ? 'Sample reconciliation is ready.' : 'Sample data loaded. Review the column mappings.');
   renderApp();
-  document.querySelector(complete ? '#results-title' : '#mapping-title')?.scrollIntoView({ block: 'start' });
+  if (moveToResult) document.querySelector(complete ? '#results-title' : '#mapping-title')?.scrollIntoView({ block: 'start' });
 }
 
 function runReconciliation(): void {
@@ -488,7 +488,7 @@ async function renderRoute(focusHeading = false): Promise<void> {
   } else if (requestedDemo && (path === '/' || path === '/demo' || path === '/demo/')) {
     setMetadata('Demo — Payout Reconciliation Explainer', 'Review a completed sample payout reconciliation and export its handoff files.', '/demo');
     try { state = (await loadDraft()) ?? emptyState(); } catch { state = emptyState(); }
-    if (!state.result) loadSample(true); else renderApp();
+    if (!state.result) loadSample(true, false); else renderApp();
   } else {
     setMetadata('Page not found — Payout Reconciliation Explainer', 'The requested page does not exist. Return to the payout reconciliation tool.', path);
     renderNotFound();
