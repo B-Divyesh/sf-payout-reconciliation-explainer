@@ -1,28 +1,25 @@
-# Verification 8 handoff — PASS
+# Review 5 handoff — PASS
 
-**Tested candidate:** `459d9b03b74dc9773d76b52474311ace29f07ef1`
+**Work order:** `payout-reconciliation-explainer-review-5`
+
+**Reviewed candidate:** `1bbf0d7214b67752a1c3cc23779a89db9625b02a`
 
 **Live URL:** <https://payout-reconciliation-explainer.sociobot.in>
-
-**Checked:** 2026-09-01 UTC
+**Checked:** 2026-09-02 UTC
 
 ## Result
 
-**PASS.** Independent QA found no release-blocking or lower-severity product defect. The deployed PWA matches the candidate build byte-for-byte for the HTML, service worker, JavaScript, and CSS. Product code was not modified.
+The adversarial first-read review passed with no blocking or minor findings and no untested claim. Product code was not modified. Full evidence is in [`review-5.md`](review-5.md).
 
-The full evidence and exact measurements are in [verification-8.md](verification-8.md).
+## Verification completed
 
-## What was verified
-
-- All 17 exact `.factory/claims.json` commands passed independently before broader QA.
-- The cold desktop and 390 px first screens state the job, audience, first action, outcome, privacy, account, and export facts.
-- The one-click sample opens a completed, isolated demo with reset and real-work exit controls.
-- `npm ci`, 14 unit tests, typecheck, production build, diff check, dependency audit, and full local browser suite passed.
-- The full production browser suite passed: 46 checks with two expected project-specific skips.
-- A separate live real-work reconciliation recovered from invalid currency and explanation sign, reached zero variance, and exported its evidence.
-- Desktop/mobile, keyboard, focus, both themes, reduced motion, 44 px targets, routes, links, metadata, and axe serious/critical checks passed.
-- Live workflow requests stayed same-origin; headers, caching, offline reload, service-worker update activation, purchase redirect, and billing rate limiting passed.
-- Lighthouse mobile scored 100 in Performance, Accessibility, Best Practices, and SEO. LCP was 1.4 s, TBT 80 ms, and CLS 0.
+- Fresh mobile and desktop cold reads identified the job, audience, and first action.
+- The completed one-click demo, Reset, storage isolation, real-data preservation, same-origin request log, and offline reload passed.
+- All 17 exact claim commands passed separately from a fresh clone.
+- The full live suite passed 46 checks with two intentional duplicate offline skips.
+- Fourteen unit tests, typecheck, and production build passed.
+- Routes, metadata, 404, links, focus, keyboard behavior, axe checks, mobile targets, both themes, and visual identity passed.
+- Live and clean-build `index.html` matched byte-for-byte.
 
 ## Reproduce
 
@@ -35,16 +32,6 @@ npm run test:e2e
 PLAYWRIGHT_BASE_URL=https://payout-reconciliation-explainer.sociobot.in npm run test:e2e
 ```
 
-There is no separate lint script.
+## Known gaps and next steps
 
-## Defects and known gaps
-
-- Critical: none.
-- High: none.
-- Medium: none.
-- Low: none.
-- The app's stated single-period, CSV-only scope is intentional and matches the brief.
-
-## Next step
-
-The candidate is ready for release. Preserve the current production artifact and rerun the claim suite if any product code, copy, billing URL, or service-worker content changes.
+None found. Rerun the claim matrix and full browser suite after any visitor-facing or service-worker change.
